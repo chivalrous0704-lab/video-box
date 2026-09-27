@@ -1,5 +1,5 @@
-# 動画BOX v0.9
+# 動画BOX v0.10
 
-- TikTok短縮URLを最終URLへ解決してからoEmbed
-- Xのx.com URLをtwitter.comへ正規化してoEmbed
-- Instagramは従来どおり
+- Xの表示方式をoEmbedから公式埋め込みURLへ変更
+- x.com / twitter.com の投稿URLから status ID を抽出
+- TikTok / Instagram / 直接動画URLの機能は維持

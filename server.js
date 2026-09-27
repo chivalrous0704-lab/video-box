@@ -39,14 +39,19 @@ app.get("/api/instagram-oembed",async(req,res)=>{
   }catch(e){res.status(400).json({ok:false,error:e.message})}
 });
 
-app.get("/api/x-oembed",async(req,res)=>{
+app.get("/api/x-embed",async(req,res)=>{
   try{
-    const raw=req.query.url; const normalized=normalizeXUrl(raw);
-    const api="https://publish.twitter.com/oembed?omit_script=1&dnt=1&url="+encodeURIComponent(normalized);
-    const r=await fetch(api,{headers:{"User-Agent":"Mozilla/5.0","Accept":"application/json"}});
-    const txt=await r.text(); if(!r.ok) throw new Error("X oEmbed "+r.status);
-    const d=JSON.parse(txt); res.json({ok:true,provider:"X",html:d.html||""});
-  }catch(e){res.status(400).json({ok:false,error:e.message})}
+    const raw=req.query.url;
+    const u=safeUrl(raw);
+    if(!u) return res.status(400).json({ok:false,error:"URLが不正です"});
+    const m=u.pathname.match(/\/status\/(\d+)/);
+    if(!m) return res.status(400).json({ok:false,error:"Xの投稿URLではありません（/status/数字 のURLを使ってください）"});
+    const id=m[1];
+    const embed_url="https://platform.twitter.com/embed/Tweet.html?id="+encodeURIComponent(id)+"&dnt=true&theme=light";
+    res.json({ok:true,provider:"X",tweet_id:id,embed_url});
+  }catch(e){
+    res.status(400).json({ok:false,error:e.message});
+  }
 });
 
 app.get("/api/check",async(req,res)=>{try{
@@ -60,4 +65,4 @@ app.get(["/api/stream","/api/download"],async(req,res)=>{try{
   res.setHeader("Content-Type",ct); const reader=r.body.getReader(); while(true){const {done,value}=await reader.read();if(done)break;res.write(Buffer.from(value))}res.end()
 }catch(e){res.status(400).send(e.message)}});
 
-app.listen(process.env.PORT||3000,()=>console.log("video-box v0.9"));
+app.listen(process.env.PORT||3000,()=>console.log("video-box v0.10"));

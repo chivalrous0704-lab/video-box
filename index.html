@@ -21,7 +21,7 @@ video{width:100%;border-radius:14px;background:#000;margin-top:12px;max-height:4
 </head>
 <body>
 <div class="wrap">
-<div class="top"><div><h1>動画BOX</h1><div class="muted">動画URLを確認・保存・整理</div></div><span class="badge">v0.9</span></div>
+<div class="top"><div><h1>動画BOX</h1><div class="muted">動画URLを確認・保存・整理</div></div><span class="badge">v0.10</span></div>
 
 <div class="card">
 <div class="row">
@@ -70,7 +70,7 @@ function classify(raw){
   return {type:"unknown"};
 }
 function setBadge(t,c=""){platformEl.className="platform";platformEl.innerHTML=`<span class="badge ${c}">${t}</span>`}
-function resetBoxes(){[directBox,tiktokBox,embedBox].forEach(x=>x.classList.add("hidden"));platformEl.classList.add("hidden");statusEl.textContent="";preview.removeAttribute("src");preview.load();$("#ttPlayer").src="";$("#socialEmbed").srcdoc=""}
+function resetBoxes(){[directBox,tiktokBox,embedBox].forEach(x=>x.classList.add("hidden"));platformEl.classList.add("hidden");statusEl.textContent="";preview.removeAttribute("src");preview.load();$("#ttPlayer").src="";$("#socialEmbed").src="";$("#socialEmbed").srcdoc=""}
 function wrapEmbed(html,provider){
   const extra=provider==="Instagram"?'<script async src="https://www.instagram.com/embed.js"></'+'script>':'<script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></'+'script>';
   return `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{margin:0;padding:8px;background:#fff}blockquote{margin:auto!important}</style></head><body>${html}${extra}</body></html>`;
@@ -92,10 +92,18 @@ async function checkUrl(){
   if(c.type==="instagram"||c.type==="x"){
     setBadge(c.type==="instagram"?"Instagram 投稿URL":"X 投稿URL","ok"); statusEl.textContent="投稿を取得しています…";
     try{
-      const endpoint=c.type==="instagram"?"/api/instagram-oembed":"/api/x-oembed";
+      const endpoint=c.type==="instagram"?"/api/instagram-oembed":"/api/x-embed";
       const r=await fetch(endpoint+"?url="+encodeURIComponent(raw)); const d=await r.json();
       if(!r.ok||!d.ok) throw new Error(d.error||"取得できませんでした");
-      embedBox.classList.remove("hidden"); $("#socialEmbed").srcdoc=wrapEmbed(d.html,d.provider); $("#openSocial").onclick=()=>window.open(raw,"_blank");
+      embedBox.classList.remove("hidden");
+      if(c.type==="x"){
+        $("#socialEmbed").srcdoc="";
+        $("#socialEmbed").src=d.embed_url;
+      }else{
+        $("#socialEmbed").removeAttribute("src");
+        $("#socialEmbed").srcdoc=wrapEmbed(d.html,d.provider);
+      }
+      $("#openSocial").onclick=()=>window.open(raw,"_blank");
       statusEl.textContent=d.provider+"投稿を表示しました。";
     }catch(e){statusEl.textContent="取得エラー: "+e.message}
     return;
