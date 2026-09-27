@@ -1,5 +1,12 @@
-# 動画BOX v0.10
+# 動画BOX v0.11
 
-- Xの表示方式をoEmbedから公式埋め込みURLへ変更
-- x.com / twitter.com の投稿URLから status ID を抽出
-- TikTok / Instagram / 直接動画URLの機能は維持
+- Instagram / TikTok / X の投稿ページを iframe で埋め込む方式を廃止
+- yt-dlp で公開投稿の実動画URLを取得
+- 動画をアプリ内でプレビュー
+- 「端末に保存」で iPhone の共有/保存画面を開く
+- 元の投稿を開くボタンは維持
+- 直接動画URLの保存機能も維持
+
+## 重要
+`youtube-dl-exec` はビルド時に yt-dlp を用意します。実行環境には Python 3.9 以上が必要です。
+公開投稿でも、ログイン限定・非公開・年齢制限・地域制限などでは取得できない場合があります。
