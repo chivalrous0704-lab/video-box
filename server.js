@@ -4,6 +4,8 @@ const fs = require("fs");
 const path = require("path");
 const os = require("os");
 const youtubedl = require("youtube-dl-exec");
+const ffmpegPath = require("ffmpeg-static");
+const { spawn } = require("child_process");
 
 const app = express();
 app.use(express.static(__dirname));
@@ -101,6 +103,59 @@ function chooseIosFormat(d) {
     }
   }
   return "";
+}
+
+
+function makeIphoneCompatible(inputPath, id) {
+  return new Promise((resolve, reject) => {
+    if (!ffmpegPath) return reject(new Error("ffmpegが利用できません"));
+
+    const outputPath = path.join(MEDIA_DIR, `${id}.iphone.mp4`);
+    try { fs.rmSync(outputPath, { force: true }); } catch {}
+
+    const args = [
+      "-y",
+      "-i", inputPath,
+      "-map", "0:v:0",
+      "-map", "0:a:0?",
+      "-c:v", "libx264",
+      "-preset", "veryfast",
+      "-crf", "23",
+      "-pix_fmt", "yuv420p",
+      "-profile:v", "main",
+      "-level", "4.0",
+      "-c:a", "aac",
+      "-b:a", "128k",
+      "-movflags", "+faststart",
+      outputPath
+    ];
+
+    const proc = spawn(ffmpegPath, args, { stdio: ["ignore", "ignore", "pipe"] });
+    let err = "";
+
+    const timer = setTimeout(() => {
+      try { proc.kill("SIGKILL"); } catch {}
+    }, 5 * 60 * 1000);
+
+    proc.stderr.on("data", d => {
+      err += d.toString();
+      if (err.length > 12000) err = err.slice(-12000);
+    });
+
+    proc.on("error", e => {
+      clearTimeout(timer);
+      reject(e);
+    });
+
+    proc.on("close", code => {
+      clearTimeout(timer);
+      if (code !== 0 || !fs.existsSync(outputPath) || fs.statSync(outputPath).size < 1024) {
+        try { fs.rmSync(outputPath, { force: true }); } catch {}
+        return reject(new Error("iPhone互換変換に失敗しました: " + (err.split("\n").filter(Boolean).slice(-2).join(" / ") || `ffmpeg code ${code}`)));
+      }
+      resolve(outputPath);
+    });
+  });
 }
 
 function cleanupPrefix(id) {
@@ -227,10 +282,23 @@ app.get("/api/social-info", async (req, res) => {
 
     // v0.13: CDNの直URLをブラウザで再取得しない。
     // yt-dlp自身に動画を一度サーバーへ保存させ、そこから端末へ配信する。
-    const filePath = await downloadSocial(raw, id, d);
-    const ext = path.extname(filePath).replace(/^\./, "") || d.ext || "mp4";
+    const downloadedPath = await downloadSocial(raw, id, d);
+
+    // v0.15: 保存できてもiPhoneで再生できないInstagram動画対策。
+    // 一度H.264 + AAC / yuv420p / faststartのMP4に変換してから配信する。
+    let filePath;
+    try {
+      filePath = await makeIphoneCompatible(downloadedPath, id);
+      if (downloadedPath !== filePath) {
+        try { fs.rmSync(downloadedPath, { force: true }); } catch {}
+      }
+    } catch (convertError) {
+      throw new Error(convertError?.message || "iPhone互換形式への変換に失敗しました");
+    }
+
+    const ext = "mp4";
     const stat = fs.statSync(filePath);
-    storeMedia({ id, filePath, ext, title, webpageUrl, size: stat.size, contentType: mimeFromExt(ext) });
+    storeMedia({ id, filePath, ext, title, webpageUrl, size: stat.size, contentType: "video/mp4" });
 
     res.json({
       ok: true,
@@ -241,7 +309,7 @@ app.get("/api/social-info", async (req, res) => {
       filename: cleanFilename(title, ext),
       ext,
       size: stat.size,
-      selectedFormat: chooseIosFormat(d) || "",
+      selectedFormat: "H.264 + AAC (iPhone互換変換済み)",
       mediaId: id,
       mediaUrl: `/api/media/${id}`,
       downloadUrl: `/api/media/${id}?download=1`
@@ -339,4 +407,4 @@ app.get(["/api/stream", "/api/download"], async (req, res) => {
   } catch (e) { res.status(400).send(e.message); }
 });
 
-app.listen(process.env.PORT || 3000, () => console.log("video-box v0.14"));
+app.listen(process.env.PORT || 3000, () => console.log("video-box v0.15"));
