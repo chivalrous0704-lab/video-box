@@ -106,16 +106,32 @@ function chooseIosFormat(d) {
 }
 
 
-function makeIphoneCompatible(inputPath, id) {
+function makeIphoneCompatible(inputPath, id, forceTranscode = false) {
   return new Promise((resolve, reject) => {
     if (!ffmpegPath) return reject(new Error("ffmpegが利用できません"));
 
     const outputPath = path.join(MEDIA_DIR, `${id}.iphone.mp4`);
     try { fs.rmSync(outputPath, { force: true }); } catch {}
 
-    // 再エンコードはせず、MP4コンテナだけ整える。
-    // Instagram動画は多くがH.264/AACなので、これなら数秒で終わりやすい。
-    const args = [
+    const args = forceTranscode ? [
+      "-y",
+      "-i", inputPath,
+      "-map", "0:v:0",
+      "-map", "0:a:0?",
+      "-vf", "scale='min(720,iw)':-2",
+      "-r", "30",
+      "-c:v", "libx264",
+      "-preset", "ultrafast",
+      "-crf", "28",
+      "-pix_fmt", "yuv420p",
+      "-profile:v", "main",
+      "-level", "4.0",
+      "-threads", "2",
+      "-c:a", "aac",
+      "-b:a", "128k",
+      "-movflags", "+faststart",
+      outputPath
+    ] : [
       "-y",
       "-i", inputPath,
       "-map", "0:v:0",
@@ -129,14 +145,15 @@ function makeIphoneCompatible(inputPath, id) {
     let err = "";
     let timedOut = false;
 
+    const limitMs = forceTranscode ? 60000 : 30000;
     const timer = setTimeout(() => {
       timedOut = true;
       try { proc.kill("SIGKILL"); } catch {}
-    }, 30000);
+    }, limitMs);
 
     proc.stderr.on("data", d => {
       err += d.toString();
-      if (err.length > 8000) err = err.slice(-8000);
+      if (err.length > 12000) err = err.slice(-12000);
     });
 
     proc.on("error", e => {
@@ -148,11 +165,12 @@ function makeIphoneCompatible(inputPath, id) {
       clearTimeout(timer);
       if (timedOut) {
         try { fs.rmSync(outputPath, { force: true }); } catch {}
-        return reject(new Error("動画変換が30秒を超えたため中止しました"));
+        return reject(new Error(forceTranscode ? "iPhone互換変換が60秒を超えたため中止しました" : "MP4整形が30秒を超えたため中止しました"));
       }
       if (code !== 0 || !fs.existsSync(outputPath) || fs.statSync(outputPath).size < 1024) {
         try { fs.rmSync(outputPath, { force: true }); } catch {}
-        return reject(new Error("MP4整形に失敗しました: " + (err.split("\n").filter(Boolean).slice(-2).join(" / ") || `ffmpeg code ${code}`)));
+        return reject(new Error((forceTranscode ? "iPhone互換変換" : "MP4整形") + "に失敗しました: " + (err.split("
+").filter(Boolean).slice(-2).join(" / ") || `ffmpeg code ${code}`)));
       }
       resolve(outputPath);
     });
@@ -289,8 +307,10 @@ app.get("/api/social-info", async (req, res) => {
     // MP4の構造だけ整える（faststart）。30秒で終わらなければ元動画へフォールバック。
     let filePath = downloadedPath;
     let normalized = false;
+    const forceIphoneTranscode = isInstagramUrl(raw);
+
     try {
-      const fixedPath = await makeIphoneCompatible(downloadedPath, id);
+      const fixedPath = await makeIphoneCompatible(downloadedPath, id, forceIphoneTranscode);
       if (fixedPath && fs.existsSync(fixedPath)) {
         filePath = fixedPath;
         normalized = true;
@@ -299,6 +319,8 @@ app.get("/api/social-info", async (req, res) => {
         }
       }
     } catch (convertError) {
+      // Instagramは変換できなければ再生不能の可能性が高いので、エラーとして返す。
+      if (forceIphoneTranscode) throw convertError;
       console.warn("MP4整形をスキップ:", convertError?.message || convertError);
     }
 
@@ -319,7 +341,7 @@ app.get("/api/social-info", async (req, res) => {
       filename: cleanFilename(title, ext),
       ext,
       size: stat.size,
-      selectedFormat: "MP4 faststart整形",
+      selectedFormat: isInstagramUrl(raw) ? "H.264 + AAC / 720p（iPhone互換変換済み）" : "MP4 faststart整形",
       mediaId: id,
       mediaUrl: `/api/media/${id}`,
       downloadUrl: `/api/media/${id}?download=1`
@@ -411,4 +433,4 @@ app.get(["/api/stream", "/api/download"], async (req, res) => {
   } catch (e) { res.status(400).send(e.message); }
 });
 
-app.listen(process.env.PORT || 3000, () => console.log("video-box v0.18"));
+app.listen(process.env.PORT || 3000, () => console.log("video-box v0.19"));

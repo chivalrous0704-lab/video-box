@@ -19,7 +19,7 @@ button{border:0;border-radius:12px;padding:12px 14px;font-weight:700}.primary{ba
 </head>
 <body>
 <div class="wrap">
-<div class="top"><div><h1>動画BOX</h1><div class="muted">SNS動画を確認・保存・整理</div></div><span class="badge">v0.18</span></div>
+<div class="top"><div><h1>動画BOX</h1><div class="muted">SNS動画を確認・保存・整理</div></div><span class="badge">v0.19</span></div>
 
 <div class="card">
 <div class="row">
@@ -83,12 +83,12 @@ async function checkUrl(){
     const p=platformName(c.type); setBadge(p+" 投稿URL","ok"); statusEl.textContent=p+"の動画を取得しています…（少し時間がかかる場合があります）";
     try{
       const controller=new AbortController();
-    const timeoutId=setTimeout(()=>controller.abort(),45000);
+    const timeoutId=setTimeout(()=>controller.abort(),75000);
     let r;
     try{
       r=await fetch("/api/social-info?url="+encodeURIComponent(raw),{signal:controller.signal,cache:"no-store"});
     }catch(e){
-      if(e && e.name==="AbortError") throw new Error("取得に45秒以上かかったため中止しました。もう一度お試しください。");
+      if(e && e.name==="AbortError") throw new Error("取得に75秒以上かかったため中止しました。もう一度お試しください。");
       throw e;
     }finally{
       clearTimeout(timeoutId);
