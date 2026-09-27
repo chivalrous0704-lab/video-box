@@ -19,7 +19,7 @@ button{border:0;border-radius:12px;padding:12px 14px;font-weight:700}.primary{ba
 </head>
 <body>
 <div class="wrap">
-<div class="top"><div><h1>動画BOX</h1><div class="muted">SNS動画を確認・保存・整理</div></div><span class="badge">v0.12</span></div>
+<div class="top"><div><h1>動画BOX</h1><div class="muted">SNS動画を確認・保存・整理</div></div><span class="badge">v0.13</span></div>
 
 <div class="card">
 <div class="row">
@@ -80,7 +80,7 @@ async function checkUrl(){
   const c=classify(raw); if(c.type==="invalid"){setBadge("URL形式エラー","err");statusEl.textContent="URLを確認してね";return}
 
   if(["tiktok","instagram","x"].includes(c.type)){
-    const p=platformName(c.type); setBadge(p+" 投稿URL","ok"); statusEl.textContent=p+"の動画を取得しています…";
+    const p=platformName(c.type); setBadge(p+" 投稿URL","ok"); statusEl.textContent=p+"の動画を取得しています…（少し時間がかかる場合があります）";
     try{
       const r=await fetch("/api/social-info?url="+encodeURIComponent(raw)); const d=await r.json();
       if(!r.ok||!d.ok) throw new Error(d.error||"取得できませんでした");
@@ -88,7 +88,7 @@ async function checkUrl(){
       $("#socialTitle").textContent=d.title||p+"動画"; $("#socialAuthor").textContent=d.author||""; socialFilename.value=d.filename||"video.mp4";
       if(d.thumbnail) $("#socialThumb").src=d.thumbnail; else $("#socialThumb").style.display="none";
       socialPreview.src=d.mediaUrl; $("#openSocial").onclick=()=>window.open(d.webpage_url||raw,"_blank");
-      statusEl.textContent="動画を取得できました。下の『端末に保存』から保存できます。";
+      statusEl.textContent="動画を取得できました。プレビューまたは『端末に保存』を使えます。";
     }catch(e){statusEl.textContent="取得エラー: "+e.message}
     return;
   }
