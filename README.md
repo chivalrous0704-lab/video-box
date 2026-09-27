@@ -1,17 +1,14 @@
-# 動画BOX v0.20
+# 動画BOX v0.21
 
 ## 修正内容
-v0.19 の Render 起動エラーを修正しました。
+v0.20 の Instagram 取得時に出ていた
+`isInstagramUrl is not defined`
+を修正しました。
 
 原因:
-server.js 内の ffmpeg エラー処理で改行文字が壊れ、JavaScript の構文エラーになっていました。
+Instagram判定関数を呼び出していましたが、関数そのものが未定義でした。
 
-v0.20 では修正後に Node.js の構文チェックを実施し、起動できることを確認しています。
+v0.21 では `instagram.com` / `instagr.am` を判定する関数を追加しています。
 
-Instagram:
-- H.264 + AAC
-- 最大720p
-- 30fps
-- yuv420p
-- faststart
-- 変換最大60秒
+構文チェック:
+`node --check server.js` 済み

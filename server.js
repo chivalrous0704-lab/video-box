@@ -35,6 +35,13 @@ function isTikTokUrl(raw) {
   } catch { return false; }
 }
 
+function isInstagramUrl(raw) {
+  try {
+    const h = new URL(raw).hostname.toLowerCase();
+    return h === "instagram.com" || h.endsWith(".instagram.com") || h === "instagr.am" || h.endsWith(".instagr.am");
+  } catch { return false; }
+}
+
 function commonFlags() {
   return {
     noWarnings: true,
@@ -432,4 +439,4 @@ app.get(["/api/stream", "/api/download"], async (req, res) => {
   } catch (e) { res.status(400).send(e.message); }
 });
 
-app.listen(process.env.PORT || 3000, () => console.log("video-box v0.20"));
+app.listen(process.env.PORT || 3000, () => console.log("video-box v0.21"));
