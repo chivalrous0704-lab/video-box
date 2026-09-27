@@ -40,7 +40,7 @@ function requestOnce(u, method = 'GET', headers = {}) {
     const req = lib.request(u, {
       method,
       headers: {
-        'User-Agent': 'VideoBox/0.4',
+        'User-Agent': 'VideoBox/0.5',
         'Accept': 'video/*,audio/*,application/octet-stream;q=0.8,*/*;q=0.2',
         ...headers,
       },
@@ -171,4 +171,4 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
-server.listen(PORT, () => console.log(`Video BOX v0.4: http://localhost:${PORT}`));
+server.listen(PORT, () => console.log(`Video BOX v0.5: http://localhost:${PORT}`));

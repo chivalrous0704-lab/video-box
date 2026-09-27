@@ -24,7 +24,7 @@ video,audio{width:100%;margin-top:14px;border-radius:15px;background:#000}.secti
 </style>
 </head>
 <body><div class="wrap">
-  <div class="top"><h1>動画BOX</h1><span class="badge">v0.4</span></div>
+  <div class="top"><h1>動画BOX</h1><span class="badge">v0.5</span></div>
 
   <div class="card">
     <label for="url">動画・音声ファイルの直接URL</label>
@@ -58,8 +58,8 @@ video,audio{width:100%;margin-top:14px;border-radius:15px;background:#000}.secti
 const $=s=>document.querySelector(s);
 const url=$('#url'), status=$('#status'), preview=$('#preview'), dl=$('#download'), filename=$('#filename'), filenamebox=$('#filenamebox');
 let current=null, deferredInstall=null;
-const KEY='videobox-history-v04';
-const OLD_KEYS=['videobox-history-v02','videobox-history-v03'];
+const KEY='videobox-history-v05';
+const OLD_KEYS=['videobox-history-v02','videobox-history-v03','videobox-history-v04'];
 
 function migrate(){
   if(localStorage.getItem(KEY)) return;
@@ -84,14 +84,40 @@ async function inspect(){
     setStatus(`確認OK：${j.filename} / ${fmtBytes(j.bytes)} / ${j.contentType||'種類不明'}`,'ok');
   }catch(e){setStatus(e.message,'error')}
 }
-function download(){
-  if(!current)return;
-  const name=cleanName(filename.value||current.filename);
-  const href='/api/download?url='+encodeURIComponent(current.finalUrl)+'&name='+encodeURIComponent(name);
-  const a=document.createElement('a');a.href=href;a.download=name;document.body.appendChild(a);a.click();a.remove();
-  const arr=histories(); arr.unshift({id:Date.now(),name,url:current.finalUrl,type:current.contentType,bytes:current.bytes,at:new Date().toISOString()}); saveHist(arr);
-  setStatus('保存を開始しました。Safariのダウンロード表示を確認してください。','ok');
+async function saveToDevice(item=current, customName=null, addHistory=true){
+  if(!item)return;
+  const name=cleanName(customName||filename.value||item.filename||item.name||'video.mp4');
+  const href='/api/download?url='+encodeURIComponent(item.finalUrl||item.url)+'&name='+encodeURIComponent(name);
+  setStatus('保存用ファイルを準備しています…');
+  try{
+    const r=await fetch(href);
+    if(!r.ok){let msg='保存ファイルを取得できませんでした';try{const j=await r.json();msg=j.error||msg}catch{}throw new Error(msg)}
+    const blob=await r.blob();
+    const file=new File([blob],name,{type:blob.type||item.contentType||'application/octet-stream'});
+
+    // iPhone/iPadでは共有シート経由にすると、動画プレビュー画面へ遷移せずアプリに戻れる。
+    if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
+      await navigator.share({files:[file],title:name});
+      setStatus('共有メニューを閉じました。「ファイルに保存」または対応アプリへの保存を選べます。','ok');
+    }else{
+      const objectUrl=URL.createObjectURL(blob);
+      const a=document.createElement('a');
+      a.href=objectUrl;a.download=name;a.style.display='none';document.body.appendChild(a);a.click();a.remove();
+      setTimeout(()=>URL.revokeObjectURL(objectUrl),30000);
+      setStatus('保存を開始しました。ブラウザのダウンロード表示を確認してください。','ok');
+    }
+
+    if(addHistory){
+      const arr=histories();
+      arr.unshift({id:Date.now(),name,url:item.finalUrl||item.url,type:item.contentType||item.type,bytes:item.bytes||blob.size,at:new Date().toISOString()});
+      saveHist(arr);
+    }
+  }catch(e){
+    if(e && e.name==='AbortError'){setStatus('保存をキャンセルしました。');return;}
+    setStatus(e.message||'保存できませんでした。','error');
+  }
 }
+function download(){ return saveToDevice(current, cleanName(filename.value||current?.filename), true); }
 function render(){
   const arr=histories(); $('#count').textContent=`${arr.length}件`; const root=$('#history'); $('#clearHistory').disabled=!arr.length;
   if(!arr.length){root.innerHTML='<div class="empty">まだ履歴はありません。</div>';return}
@@ -101,7 +127,7 @@ function render(){
     <div class="meta">${fmtBytes(x.bytes)} ・ ${new Date(x.at).toLocaleString('ja-JP')}</div>
     <div class="smallrow">
       <button class="ghost" data-play="${x.id}">再生</button>
-      <a class="btn primary" href="/api/download?url=${encodeURIComponent(x.url)}&name=${encodeURIComponent(x.name||'video')}">再保存</a>
+      <button class="primary" data-save="${x.id}">再保存</button>
       <button class="soft" data-rename="${x.id}">名前変更</button>
       <button class="danger" data-del="${x.id}">削除</button>
     </div>
@@ -112,8 +138,9 @@ function esc(s){return String(s).replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;',
 function escAttr(s){return esc(s).replace(/'/g,'&#39;')}
 
 document.addEventListener('click',e=>{
-  const pid=e.target.dataset.play, did=e.target.dataset.del, rid=e.target.dataset.rename;
+  const pid=e.target.dataset.play, did=e.target.dataset.del, rid=e.target.dataset.rename, sid=e.target.dataset.save;
   if(pid){const x=histories().find(v=>String(v.id)===pid);const box=$('#p'+pid);if(x)box.innerHTML=`<video controls playsinline src="${escAttr(x.url)}"></video>`}
+  if(sid){const x=histories().find(v=>String(v.id)===sid);if(x)saveToDevice(x,x.name||'video',false)}
   if(did){saveHist(histories().filter(v=>String(v.id)!==did))}
   if(rid){const arr=histories();const x=arr.find(v=>String(v.id)===rid);if(!x)return;const next=prompt('新しいファイル名',x.name||'video');if(next!==null){x.name=cleanName(next);saveHist(arr)}}
 });
