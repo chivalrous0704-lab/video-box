@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<meta name="theme-color" content="#111111" />
+<link rel="manifest" href="/manifest.webmanifest" />
+<title>動画BOX</title>
+<style>
+:root{--bg:#0d0d0f;--card:#18181c;--muted:#9a9aa3;--line:#2a2a31;--txt:#f7f7f8;--accent:#fff}
+*{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic",sans-serif}
+.wrap{max-width:760px;margin:auto;padding:18px 16px 100px}.top{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+h1{font-size:24px;margin:0}.badge{font-size:12px;padding:6px 9px;background:#24242a;border:1px solid var(--line);border-radius:999px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:16px;margin:12px 0;box-shadow:0 10px 30px #0004}
+label{font-size:13px;color:var(--muted);display:block;margin-bottom:8px}input{width:100%;border:1px solid var(--line);background:#0f0f12;color:#fff;border-radius:14px;padding:15px;font-size:16px;outline:none}
+button,.btn{border:0;border-radius:14px;padding:13px 15px;font-weight:700;font-size:15px;cursor:pointer;text-decoration:none;text-align:center}.primary{background:#fff;color:#111}.ghost{background:#24242a;color:#fff;border:1px solid var(--line)}.danger{background:#2a1718;color:#ffb7ba;border:1px solid #5b2a2d}
+.row{display:flex;gap:10px;margin-top:12px}.row>*{flex:1}.status{font-size:13px;color:var(--muted);line-height:1.55;margin-top:10px}.error{color:#ffaaa9}.ok{color:#b7f7c8}
+video,audio{width:100%;margin-top:14px;border-radius:14px;background:#000}.section-title{display:flex;align-items:center;justify-content:space-between;margin-top:24px}.section-title h2{font-size:18px;margin:0}.count{font-size:12px;color:var(--muted)}
+.item{padding:14px 0;border-top:1px solid var(--line)}.item:first-child{border-top:0}.name{font-weight:700;overflow-wrap:anywhere}.meta{font-size:12px;color:var(--muted);margin:5px 0 10px}.smallrow{display:flex;gap:8px}.smallrow button,.smallrow a{padding:10px 12px;font-size:13px}
+.empty{padding:24px 8px;text-align:center;color:var(--muted);font-size:14px}.notice{font-size:12px;color:var(--muted);line-height:1.6;margin-top:12px}.footer{margin-top:26px;text-align:center;color:#686872;font-size:11px}.hidden{display:none}
+</style>
+</head>
+<body><div class="wrap">
+  <div class="top"><h1>動画BOX</h1><span class="badge">v0.2</span></div>
+  <div class="card">
+    <label for="url">動画・音声ファイルの直接URL</label>
+    <input id="url" inputmode="url" placeholder="https://example.com/video.mp4" autocomplete="off" />
+    <div class="row"><button id="check" class="ghost">確認</button><button id="download" class="primary" disabled>端末に保存</button></div>
+    <div id="status" class="status">URLを貼って「確認」を押してください。</div>
+    <video id="preview" class="hidden" controls playsinline></video>
+    <div class="notice">※ 自分が権利を持つ動画、または保存が許可された動画で利用してください。Instagram・TikTok・X・YouTubeなどの投稿ページからの抽出は行いません。</div>
+  </div>
+
+  <div class="section-title"><h2>保存履歴</h2><span id="count" class="count"></span></div>
+  <div id="history" class="card"></div>
+  <div class="footer">動画BOX — direct media downloader</div>
+</div>
+<script>
+const $=s=>document.querySelector(s); const url=$('#url'), status=$('#status'), preview=$('#preview'), dl=$('#download');
+let current=null; const KEY='videobox-history-v02';
+function histories(){try{return JSON.parse(localStorage.getItem(KEY)||'[]')}catch{return []}}
+function saveHist(arr){localStorage.setItem(KEY,JSON.stringify(arr.slice(0,50)));render()}
+function fmtBytes(n){if(!n)return 'サイズ不明'; const u=['B','KB','MB','GB']; let i=0;while(n>=1024&&i<u.length-1){n/=1024;i++}return `${n.toFixed(i?1:0)} ${u[i]}`}
+function setStatus(t,cls=''){status.className='status '+cls;status.textContent=t}
+async function inspect(){
+  const v=url.value.trim(); current=null; dl.disabled=true; preview.classList.add('hidden'); preview.removeAttribute('src');
+  if(!v)return setStatus('URLを入力してください。','error');
+  setStatus('確認しています…');
+  try{
+    const r=await fetch('/api/inspect?url='+encodeURIComponent(v)); const j=await r.json(); if(!r.ok)throw new Error(j.error||'確認できませんでした');
+    current=j; dl.disabled=false; preview.src=j.finalUrl; preview.classList.remove('hidden');
+    setStatus(`確認OK：${j.filename} / ${fmtBytes(j.bytes)} / ${j.contentType||'種類不明'}`,'ok');
+  }catch(e){setStatus(e.message,'error')}
+}
+function download(){
+  if(!current)return; const href='/api/download?url='+encodeURIComponent(current.finalUrl);
+  const a=document.createElement('a');a.href=href;a.download=current.filename||'video';document.body.appendChild(a);a.click();a.remove();
+  const arr=histories(); arr.unshift({id:Date.now(),name:current.filename,url:current.finalUrl,type:current.contentType,bytes:current.bytes,at:new Date().toISOString()});saveHist(arr);
+  setStatus('保存を開始しました。端末側のダウンロード表示を確認してください。','ok');
+}
+function render(){
+  const arr=histories(); $('#count').textContent=`${arr.length}件`; const root=$('#history'); if(!arr.length){root.innerHTML='<div class="empty">まだ履歴はありません。</div>';return}
+  root.innerHTML=arr.map(x=>`<div class="item"><div class="name">${esc(x.name||'video')}</div><div class="meta">${fmtBytes(x.bytes)} ・ ${new Date(x.at).toLocaleString('ja-JP')}</div><div class="smallrow"><button class="ghost" data-play="${x.id}">再生</button><a class="btn primary" href="/api/download?url=${encodeURIComponent(x.url)}">再保存</a><button class="danger" data-del="${x.id}">削除</button></div><div id="p${x.id}"></div></div>`).join('');
+}
+function esc(s){return String(s).replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+document.addEventListener('click',e=>{const pid=e.target.dataset.play, did=e.target.dataset.del;if(pid){const x=histories().find(v=>String(v.id)===pid);const box=$('#p'+pid);if(x)box.innerHTML=`<video controls playsinline src="${esc(x.url)}"></video>`}if(did)saveHist(histories().filter(v=>String(v.id)!==did))});
+$('#check').onclick=inspect; dl.onclick=download; url.addEventListener('keydown',e=>{if(e.key==='Enter')inspect()});
+if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(()=>{});render();
+</script></body></html>
