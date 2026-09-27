@@ -152,8 +152,7 @@ function makeIphoneCompatible(inputPath, id) {
       }
       if (code !== 0 || !fs.existsSync(outputPath) || fs.statSync(outputPath).size < 1024) {
         try { fs.rmSync(outputPath, { force: true }); } catch {}
-        return reject(new Error("MP4整形に失敗しました: " + (err.split("
-").filter(Boolean).slice(-2).join(" / ") || `ffmpeg code ${code}`)));
+        return reject(new Error("MP4整形に失敗しました: " + (err.split("\n").filter(Boolean).slice(-2).join(" / ") || `ffmpeg code ${code}`)));
       }
       resolve(outputPath);
     });
@@ -418,4 +417,4 @@ app.get(["/api/stream", "/api/download"], async (req, res) => {
   } catch (e) { res.status(400).send(e.message); }
 });
 
-app.listen(process.env.PORT || 3000, () => console.log("video-box v0.16"));
+app.listen(process.env.PORT || 3000, () => console.log("video-box v0.17"));
