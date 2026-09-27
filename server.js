@@ -8,6 +8,63 @@ app.use(express.static(__dirname));
 const mediaCache = new Map();
 const MEDIA_TTL = 30 * 60 * 1000;
 
+// TikTok changes its anti-bot challenge frequently.
+// As of Sep 2026, yt-dlp's default impersonation can be rejected while an
+// explicit desktop UA succeeds, so TikTok requests use a known-good UA and retry.
+const TIKTOK_UAS = [
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36",
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36 OPR/118.0.0.0"
+];
+
+function isTikTokUrl(raw) {
+  try {
+    const h = new URL(raw).hostname.toLowerCase();
+    return h.includes("tiktok.com") || h.includes("tiktokv.com");
+  } catch { return false; }
+}
+
+async function extractSocial(raw) {
+  const common = {
+    dumpSingleJson: true,
+    noWarnings: true,
+    noCheckCertificates: true,
+    skipDownload: true,
+    noPlaylist: true,
+    format: "best[ext=mp4]/best"
+  };
+
+  if (!isTikTokUrl(raw)) {
+    return youtubedl(raw, common, { timeout: 45000 });
+  }
+
+  let lastErr;
+  for (const ua of TIKTOK_UAS) {
+    try {
+      return await youtubedl(raw, {
+        ...common,
+        userAgent: ua,
+        addHeader: ["Referer:https://www.tiktok.com/", "Accept-Language:ja,en-US;q=0.9,en;q=0.8"]
+      }, { timeout: 45000 });
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+
+  // One final retry after refreshing the yt-dlp binary. Update failure itself is
+  // non-fatal; the retry will surface the useful extraction error.
+  try { await youtubedl.update(); } catch {}
+  try {
+    return await youtubedl(raw, {
+      ...common,
+      userAgent: TIKTOK_UAS[0],
+      addHeader: ["Referer:https://www.tiktok.com/", "Accept-Language:ja,en-US;q=0.9,en;q=0.8"]
+    }, { timeout: 45000 });
+  } catch (e) {
+    lastErr = e;
+  }
+  throw lastErr || new Error("TikTokの投稿情報を取得できませんでした");
+}
+
 function safeUrl(raw) {
   try {
     const u = new URL(raw);
@@ -94,14 +151,7 @@ app.get("/api/social-info", async (req, res) => {
     const raw = req.query.url;
     if (!safeUrl(raw)) return res.status(400).json({ ok: false, error: "URLが不正です" });
 
-    const out = await youtubedl(raw, {
-      dumpSingleJson: true,
-      noWarnings: true,
-      noCheckCertificates: true,
-      skipDownload: true,
-      noPlaylist: true,
-      format: "best[ext=mp4]/best"
-    }, { timeout: 45000 });
+    const out = await extractSocial(raw);
 
     const root = typeof out === "string" ? JSON.parse(out) : out;
     const d = pickEntry(root);
@@ -212,4 +262,4 @@ app.get(["/api/stream", "/api/download"], async (req, res) => {
   }
 });
 
-app.listen(process.env.PORT || 3000, () => console.log("video-box v0.11"));
+app.listen(process.env.PORT || 3000, () => console.log("video-box v0.12"));
