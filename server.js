@@ -301,6 +301,7 @@ app.get("/api/social-info", async (req, res) => {
     if (!d) throw new Error("投稿情報を取得できませんでした");
 
     const title = d.title || d.description || d.fulltitle || "SNS動画";
+    const description = d.description || d.fulltitle || d.title || "";
     const author = d.uploader || d.channel || d.creator || d.uploader_id || "";
     const thumbnail = d.thumbnail || (Array.isArray(d.thumbnails) && d.thumbnails.length ? d.thumbnails[d.thumbnails.length - 1].url : "") || "";
     const webpageUrl = d.webpage_url || raw;
@@ -341,6 +342,7 @@ app.get("/api/social-info", async (req, res) => {
     res.json({
       ok: true,
       title,
+      description,
       author,
       thumbnail,
       webpage_url: webpageUrl,
@@ -439,4 +441,4 @@ app.get(["/api/stream", "/api/download"], async (req, res) => {
   } catch (e) { res.status(400).send(e.message); }
 });
 
-app.listen(process.env.PORT || 3000, () => console.log("video-box v0.21"));
+app.listen(process.env.PORT || 3000, () => console.log("video-box v0.22"));
