@@ -19,7 +19,7 @@ button{border:0;border-radius:12px;padding:12px 14px;font-weight:700}.primary{ba
 </head>
 <body>
 <div class="wrap">
-<div class="top"><div><h1>動画BOX</h1><div class="muted">SNS動画を確認・保存・整理</div></div><span class="badge">v0.13</span></div>
+<div class="top"><div><h1>動画BOX</h1><div class="muted">SNS動画を確認・保存・整理</div></div><span class="badge">v0.14</span></div>
 
 <div class="card">
 <div class="row">
@@ -87,8 +87,8 @@ async function checkUrl(){
       currentSocial={...d,sourceUrl:raw}; socialBox.classList.remove("hidden");
       $("#socialTitle").textContent=d.title||p+"動画"; $("#socialAuthor").textContent=d.author||""; socialFilename.value=d.filename||"video.mp4";
       if(d.thumbnail) $("#socialThumb").src=d.thumbnail; else $("#socialThumb").style.display="none";
-      socialPreview.src=d.mediaUrl; $("#openSocial").onclick=()=>window.open(d.webpage_url||raw,"_blank");
-      statusEl.textContent="動画を取得できました。プレビューまたは『端末に保存』を使えます。";
+      socialPreview.src=d.mediaUrl+"?v="+Date.now(); $("#openSocial").onclick=()=>window.open(d.webpage_url||raw,"_blank");
+      statusEl.textContent="動画を取得できました。プレビューまたは『端末に保存』を使えます。"+(d.selectedFormat?"（iPhone互換形式："+d.selectedFormat+"）":"");
     }catch(e){statusEl.textContent="取得エラー: "+e.message}
     return;
   }
@@ -106,8 +106,16 @@ async function saveBlobFrom(url,name,historyUrl){
   const safeName=(name||"video.mp4").replace(/[\\/:*?"<>|]+/g,"_");
   statusEl.textContent="動画を準備しています…";
   try{
-    const r=await fetch(url); if(!r.ok) throw new Error(await r.text()||"取得できませんでした");
-    const blob=await r.blob(); const file=new File([blob],safeName,{type:blob.type||"video/mp4"});
+    const r=await fetch(url,{cache:"no-store"});
+    if(!r.ok) throw new Error(await r.text()||"取得できませんでした");
+    const ct=(r.headers.get("content-type")||"").toLowerCase();
+    if(!ct.startsWith("video/")){
+      const msg=await r.text();
+      throw new Error("動画ではないデータが返されました"+(msg?"："+msg.slice(0,80):""));
+    }
+    const blob=await r.blob();
+    if(!blob.type.startsWith("video/")) throw new Error("動画形式として認識できませんでした");
+    const file=new File([blob],safeName,{type:blob.type});
     if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:safeName})}
     else{const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=safeName;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),5000)}
     addHistory({name:safeName,url:historyUrl,date:new Date().toLocaleString("ja-JP")}); statusEl.textContent="保存操作を開きました。";

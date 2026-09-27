@@ -38,7 +38,8 @@ function commonFlags() {
     noWarnings: true,
     noCheckCertificates: true,
     noPlaylist: true,
-    format: "best[ext=mp4][vcodec!=none][acodec!=none]/best[vcodec!=none][acodec!=none]/best"
+    // iPhoneで再生しやすい H.264 + AAC のMP4を最優先
+    format: "best[ext=mp4][vcodec^=avc1][acodec^=mp4a]/best[ext=mp4][vcodec^=h264][acodec^=aac]/best[ext=mp4][vcodec!=none][acodec!=none]/best[vcodec!=none][acodec!=none]/best"
   };
 }
 
@@ -68,6 +69,40 @@ async function extractSocial(raw) {
   throw lastErr || new Error("TikTokの投稿情報を取得できませんでした");
 }
 
+
+function chooseIosFormat(d) {
+  const formats = Array.isArray(d?.formats) ? d.formats : [];
+  if (!formats.length) return "";
+
+  const isVideoAudio = f =>
+    f && f.format_id &&
+    f.vcodec && f.vcodec !== "none" &&
+    f.acodec && f.acodec !== "none";
+
+  const isMp4 = f => String(f.ext || "").toLowerCase() === "mp4";
+  const isH264 = f => /^(avc1|h264)/i.test(String(f.vcodec || ""));
+  const isAac = f => /^(mp4a|aac)/i.test(String(f.acodec || ""));
+
+  const score = f =>
+    (Number(f.height) || 0) * 1000000 +
+    (Number(f.tbr) || 0) * 1000 +
+    (Number(f.filesize || f.filesize_approx) || 0) / 1000000;
+
+  const groups = [
+    formats.filter(f => isVideoAudio(f) && isMp4(f) && isH264(f) && isAac(f)),
+    formats.filter(f => isVideoAudio(f) && isMp4(f) && isH264(f)),
+    formats.filter(f => isVideoAudio(f) && isMp4(f))
+  ];
+
+  for (const group of groups) {
+    if (group.length) {
+      group.sort((a, b) => score(b) - score(a));
+      return String(group[0].format_id);
+    }
+  }
+  return "";
+}
+
 function cleanupPrefix(id) {
   try {
     for (const n of fs.readdirSync(MEDIA_DIR)) {
@@ -92,16 +127,27 @@ async function runDownload(raw, id, flags) {
   return filePath;
 }
 
-async function downloadSocial(raw, id) {
-  if (!isTikTokUrl(raw)) return runDownload(raw, id, commonFlags());
+async function downloadSocial(raw, id, metadata) {
+  const preferredFormat = chooseIosFormat(metadata);
+  const baseFlags = preferredFormat ? { ...commonFlags(), format: preferredFormat } : commonFlags();
+
+  if (!isTikTokUrl(raw)) return runDownload(raw, id, baseFlags);
 
   let lastErr;
   for (const ua of TIKTOK_UAS) {
-    try { return await runDownload(raw, id, tiktokFlags(ua)); }
+    try {
+      const tf = tiktokFlags(ua);
+      if (preferredFormat) tf.format = preferredFormat;
+      return await runDownload(raw, id, tf);
+    }
     catch (e) { lastErr = e; }
   }
   try { await youtubedl.update(); } catch {}
-  try { return await runDownload(raw, id, tiktokFlags(TIKTOK_UAS[0])); }
+  try {
+    const tf = tiktokFlags(TIKTOK_UAS[0]);
+    if (preferredFormat) tf.format = preferredFormat;
+    return await runDownload(raw, id, tf);
+  }
   catch (e) { lastErr = e; }
   throw lastErr || new Error("TikTok動画を取得できませんでした");
 }
@@ -181,7 +227,7 @@ app.get("/api/social-info", async (req, res) => {
 
     // v0.13: CDNの直URLをブラウザで再取得しない。
     // yt-dlp自身に動画を一度サーバーへ保存させ、そこから端末へ配信する。
-    const filePath = await downloadSocial(raw, id);
+    const filePath = await downloadSocial(raw, id, d);
     const ext = path.extname(filePath).replace(/^\./, "") || d.ext || "mp4";
     const stat = fs.statSync(filePath);
     storeMedia({ id, filePath, ext, title, webpageUrl, size: stat.size, contentType: mimeFromExt(ext) });
@@ -195,6 +241,7 @@ app.get("/api/social-info", async (req, res) => {
       filename: cleanFilename(title, ext),
       ext,
       size: stat.size,
+      selectedFormat: chooseIosFormat(d) || "",
       mediaId: id,
       mediaUrl: `/api/media/${id}`,
       downloadUrl: `/api/media/${id}?download=1`
@@ -214,6 +261,8 @@ app.get("/api/media/:id", (req, res) => {
     const stat = fs.statSync(item.filePath);
     const total = stat.size;
     res.setHeader("Accept-Ranges", "bytes");
+    res.setHeader("Cache-Control", "no-store");
+    res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("Content-Type", item.contentType || "video/mp4");
     if (req.query.download === "1") {
       res.setHeader("Content-Disposition", `attachment; filename*=UTF-8''${encodeURIComponent(cleanFilename(item.title, item.ext))}`);
@@ -290,4 +339,4 @@ app.get(["/api/stream", "/api/download"], async (req, res) => {
   } catch (e) { res.status(400).send(e.message); }
 });
 
-app.listen(process.env.PORT || 3000, () => console.log("video-box v0.13"));
+app.listen(process.env.PORT || 3000, () => console.log("video-box v0.14"));
