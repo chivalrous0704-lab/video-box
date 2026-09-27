@@ -1,9 +1,9 @@
 {
-  "name":"動画BOX",
-  "short_name":"動画BOX",
-  "start_url":"/",
-  "display":"standalone",
-  "background_color":"#0b0b0d",
-  "theme_color":"#0b0b0d",
-  "description":"直接動画URLを確認・保存し、履歴管理できるシンプルなPWA"
+  "name": "動画BOX",
+  "short_name": "動画BOX",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#020617",
+  "theme_color": "#111827",
+  "icons": []
 }

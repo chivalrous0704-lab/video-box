@@ -1,165 +1,134 @@
 <!doctype html>
 <html lang="ja">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<meta name="theme-color" content="#0b0b0d" />
-<meta name="apple-mobile-web-app-capable" content="yes" />
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-<meta name="apple-mobile-web-app-title" content="動画BOX" />
-<link rel="manifest" href="/manifest.webmanifest" />
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#111827">
+<link rel="manifest" href="manifest.webmanifest">
 <title>動画BOX</title>
 <style>
-:root{--bg:#0b0b0d;--card:#17171b;--card2:#202026;--muted:#9b9ba5;--line:#2b2b33;--txt:#f7f7f8;--ok:#9ce8b0;--bad:#ffabab}
-*{box-sizing:border-box}html{background:var(--bg)}body{margin:0;background:var(--bg);color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic",sans-serif}
-.wrap{max-width:760px;margin:auto;padding:18px 16px calc(110px + env(safe-area-inset-bottom))}.top{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
-h1{font-size:27px;margin:0;letter-spacing:-.02em}.badge{font-size:12px;padding:7px 10px;background:#24242a;border:1px solid var(--line);border-radius:999px;color:#ddd}
-.card{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:16px;margin:12px 0;box-shadow:0 12px 30px #0004}
-label{font-size:13px;color:var(--muted);display:block;margin-bottom:8px}.field{position:relative}.field input{padding-right:74px}input{width:100%;border:1px solid var(--line);background:#0f0f12;color:#fff;border-radius:15px;padding:15px;font-size:16px;outline:none}input:focus{border-color:#555}
-button,.btn{border:0;border-radius:14px;padding:13px 15px;font-weight:700;font-size:15px;cursor:pointer;text-decoration:none;text-align:center}.primary{background:#fff;color:#111}.ghost{background:#24242a;color:#fff;border:1px solid var(--line)}.soft{background:#1e1e23;color:#ddd;border:1px solid var(--line)}.danger{background:#2a1718;color:#ffb7ba;border:1px solid #5b2a2d}.mini{padding:8px 10px;font-size:12px;border-radius:10px}
-.row{display:flex;gap:10px;margin-top:12px}.row>*{flex:1}.status{font-size:13px;color:var(--muted);line-height:1.55;margin-top:10px}.error{color:var(--bad)}.ok{color:var(--ok)}
-video,audio{width:100%;margin-top:14px;border-radius:15px;background:#000}.section-title{display:flex;align-items:center;justify-content:space-between;margin-top:24px}.section-title h2{font-size:20px;margin:0}.count{font-size:12px;color:var(--muted)}
-.item{padding:15px 0;border-top:1px solid var(--line)}.item:first-child{border-top:0}.thumb{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:14px;background:#0d0d0f;margin-bottom:12px}.name{font-weight:750;overflow-wrap:anywhere}.meta{font-size:12px;color:var(--muted);margin:5px 0 10px}.smallrow{display:flex;gap:8px;flex-wrap:wrap}.smallrow>*{flex:1;min-width:88px}.smallrow button,.smallrow a{padding:10px 12px;font-size:13px}
-.empty{padding:26px 8px;text-align:center;color:var(--muted);font-size:14px}.notice{font-size:12px;color:var(--muted);line-height:1.65;margin-top:12px}.footer{margin-top:28px;text-align:center;color:#686872;font-size:11px}.hidden{display:none!important}.filenamebox{margin-top:12px}.toolbar{display:flex;gap:8px;margin-top:8px}.toolbar button{flex:1}.paste{position:absolute;right:8px;top:8px;padding:8px 10px;font-size:12px;border-radius:10px}.install{margin-top:10px}.installGuide{margin-top:10px;padding:12px;border-radius:14px;background:#101014;border:1px solid var(--line);font-size:13px;line-height:1.6;color:#d8d8dd}.historyHead{display:flex;gap:8px;align-items:center}.historyHead button{white-space:nowrap}
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#f8fafc;background:#020617}
+body{margin:0;background:linear-gradient(180deg,#0f172a,#020617);min-height:100vh}
+.wrap{max-width:760px;margin:auto;padding:20px}
+.card{background:#111827;border:1px solid #273449;border-radius:18px;padding:16px;margin-bottom:16px;box-shadow:0 12px 30px rgba(0,0,0,.24)}
+h1{margin:0 0 4px;font-size:28px}.muted{color:#94a3b8;font-size:14px}
+input,button{font:inherit}.row{display:flex;gap:8px;flex-wrap:wrap}
+input{flex:1;min-width:0;padding:14px;border-radius:12px;border:1px solid #334155;background:#0f172a;color:#fff}
+button{border:0;border-radius:12px;padding:12px 14px;font-weight:700}
+.primary{background:#38bdf8;color:#082f49}.secondary{background:#1e293b;color:#e2e8f0}.danger{background:#7f1d1d;color:#fee2e2}
+video{width:100%;border-radius:14px;background:#000;margin-top:12px;max-height:430px}
+.badge{display:inline-block;padding:5px 9px;border-radius:999px;background:#1e293b;color:#cbd5e1;font-size:12px}
+.ok{background:#064e3b;color:#d1fae5}.warn{background:#78350f;color:#fef3c7}.err{background:#7f1d1d;color:#fee2e2}
+.item{display:grid;grid-template-columns:96px 1fr;gap:12px;align-items:center;border-top:1px solid #243244;padding:12px 0}
+.thumb{width:96px;height:70px;object-fit:cover;border-radius:10px;background:#0f172a}
+.actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}.small{padding:8px 10px;font-size:13px}
+.top{display:flex;justify-content:space-between;align-items:center}.hidden{display:none}
+.platform{margin-top:10px}
+.note{font-size:13px;line-height:1.5;color:#cbd5e1}
 </style>
 </head>
-<body><div class="wrap">
-  <div class="top"><h1>動画BOX</h1><span class="badge">v0.5</span></div>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div><h1>動画BOX</h1><div class="muted">動画URLを確認・保存・整理</div></div>
+    <span class="badge">v0.6</span>
+  </div>
 
   <div class="card">
-    <label for="url">動画・音声ファイルの直接URL</label>
-    <div class="field">
-      <input id="url" inputmode="url" placeholder="https://example.com/video.mp4" autocomplete="off" />
-      <button id="paste" class="soft paste" type="button">貼り付け</button>
-    </div>
-    <div class="row"><button id="check" class="ghost">確認</button><button id="clear" class="soft">クリア</button></div>
-    <div id="status" class="status">URLを貼って「確認」を押してください。</div>
-    <video id="preview" class="hidden" controls playsinline></video>
-
-    <div id="filenamebox" class="filenamebox hidden">
-      <label for="filename">保存ファイル名</label>
-      <input id="filename" autocomplete="off" />
-      <div class="row"><button id="download" class="primary">端末に保存</button></div>
+    <div class="row">
+      <input id="url" placeholder="動画URL / TikTok投稿URLを貼り付け">
+      <button class="secondary" id="paste">貼り付け</button>
+      <button class="secondary" id="clear">クリア</button>
+      <button class="primary" id="check">確認</button>
     </div>
 
-    <button id="install" class="ghost install" type="button">ホーム画面に追加</button>
-    <div id="installGuide" class="installGuide hidden"></div>
-    <div class="notice">※ 自分が権利を持つ動画、または保存が許可された動画で利用してください。Instagram・TikTok・X・YouTubeなどの投稿ページからの抽出は行いません。</div>
+    <div id="platform" class="platform hidden"></div>
+    <div id="status" class="muted" style="margin-top:10px"></div>
+
+    <div id="directBox" class="hidden">
+      <video id="preview" controls playsinline></video>
+      <div class="row" style="margin-top:10px">
+        <input id="filename" placeholder="保存ファイル名">
+        <button class="primary" id="save">端末に保存</button>
+      </div>
+    </div>
+
+    <div id="socialBox" class="hidden">
+      <div class="note" id="socialText"></div>
+      <div class="actions">
+        <button class="secondary" id="openOriginal">元の投稿を開く</button>
+      </div>
+    </div>
   </div>
 
-  <div class="section-title">
-    <div class="historyHead"><h2>保存履歴</h2><span id="count" class="count"></span></div>
-    <button id="clearHistory" class="danger mini" type="button">履歴を全削除</button>
+  <div class="card">
+    <div class="top">
+      <strong>保存履歴</strong>
+      <button class="danger small" id="clearHistory">全削除</button>
+    </div>
+    <div id="history" class="muted" style="margin-top:8px">まだありません</div>
   </div>
-  <div id="history" class="card"></div>
-  <div class="footer">動画BOX — direct media downloader</div>
 </div>
+
 <script>
 const $=s=>document.querySelector(s);
-const url=$('#url'), status=$('#status'), preview=$('#preview'), dl=$('#download'), filename=$('#filename'), filenamebox=$('#filenamebox');
-let current=null, deferredInstall=null;
-const KEY='videobox-history-v05';
-const OLD_KEYS=['videobox-history-v02','videobox-history-v03','videobox-history-v04'];
+const urlEl=$("#url"),statusEl=$("#status"),platformEl=$("#platform"),directBox=$("#directBox"),socialBox=$("#socialBox"),
+preview=$("#preview"),filename=$("#filename"),historyEl=$("#history");
 
-function migrate(){
-  if(localStorage.getItem(KEY)) return;
-  for(const k of OLD_KEYS){
-    const v=localStorage.getItem(k); if(v){localStorage.setItem(KEY,v);break;}
+function classify(raw){
+  let u; try{u=new URL(raw)}catch{return {type:"invalid"}}
+  const h=u.hostname.replace(/^www\./,"").toLowerCase();
+  if(h==="tiktok.com"||h.endsWith(".tiktok.com")||h==="vt.tiktok.com"||h==="vm.tiktok.com") return {type:"tiktok",host:h};
+  if(h==="instagram.com"||h.endsWith(".instagram.com")) return {type:"instagram",host:h};
+  if(h==="x.com"||h.endsWith(".x.com")||h==="twitter.com"||h.endsWith(".twitter.com")) return {type:"x",host:h};
+  const path=u.pathname.toLowerCase();
+  if(/\.(mp4|webm|mov|m4v)$/.test(path)) return {type:"direct",host:h};
+  return {type:"unknown",host:h};
+}
+function setBadge(text,cls=""){platformEl.className="platform";platformEl.innerHTML=`<span class="badge ${cls}">${text}</span>`}
+function resetBoxes(){directBox.classList.add("hidden");socialBox.classList.add("hidden");platformEl.classList.add("hidden");preview.removeAttribute("src");preview.load();statusEl.textContent=""}
+async function checkUrl(){
+  resetBoxes(); const raw=urlEl.value.trim(); if(!raw){statusEl.textContent="URLを入力してね";return}
+  const c=classify(raw);
+  if(c.type==="invalid"){setBadge("URL形式エラー","err");statusEl.textContent="URLを確認してね";return}
+  if(["tiktok","instagram","x"].includes(c.type)){
+    const map={tiktok:["TikTok 投稿URL","TikTokの投稿URLとして認識しました。v0.6では投稿URLの判定まで対応しています。"],instagram:["Instagram 投稿URL","Instagramの投稿URLとして認識しました。現時点では判定のみ対応です。"],x:["X 投稿URL","Xの投稿URLとして認識しました。現時点では判定のみ対応です。"]};
+    setBadge(map[c.type][0],c.type==="tiktok"?"ok":"warn"); socialBox.classList.remove("hidden"); $("#socialText").textContent=map[c.type][1];
+    $("#openOriginal").onclick=()=>window.open(raw,"_blank"); return;
   }
-}
-function histories(){try{return JSON.parse(localStorage.getItem(KEY)||'[]')}catch{return []}}
-function saveHist(arr){localStorage.setItem(KEY,JSON.stringify(arr.slice(0,60)));render()}
-function fmtBytes(n){if(!n)return 'サイズ不明'; const u=['B','KB','MB','GB']; let i=0;while(n>=1024&&i<u.length-1){n/=1024;i++}return `${n.toFixed(i?1:0)} ${u[i]}`}
-function setStatus(t,cls=''){status.className='status '+cls;status.textContent=t}
-function cleanName(s){return String(s||'video').trim().replace(/[\\/:*?"<>|]/g,'_').slice(0,120)||'video'}
-function resetInspect(){current=null;preview.pause();preview.classList.add('hidden');preview.removeAttribute('src');filenamebox.classList.add('hidden');filename.value='';}
-
-async function inspect(){
-  const v=url.value.trim(); resetInspect();
-  if(!v)return setStatus('URLを入力してください。','error');
-  setStatus('確認しています…');
+  setBadge(c.type==="direct"?"直接動画URL":"通常URL",c.type==="direct"?"ok":"warn");
+  statusEl.textContent="動画URLを確認しています…";
   try{
-    const r=await fetch('/api/inspect?url='+encodeURIComponent(v)); const j=await r.json(); if(!r.ok)throw new Error(j.error||'確認できませんでした');
-    current=j; preview.src=j.finalUrl; preview.classList.remove('hidden'); filename.value=j.filename||'video.mp4'; filenamebox.classList.remove('hidden');
-    setStatus(`確認OK：${j.filename} / ${fmtBytes(j.bytes)} / ${j.contentType||'種類不明'}`,'ok');
-  }catch(e){setStatus(e.message,'error')}
+    const r=await fetch("/api/check?url="+encodeURIComponent(raw)); const data=await r.json();
+    if(!r.ok||!data.ok) throw new Error(data.error||"確認できませんでした");
+    if(!data.isVideo){statusEl.textContent="直接動画ファイルとして確認できませんでした。";return}
+    directBox.classList.remove("hidden"); preview.src=data.proxyUrl; filename.value=data.filename||"video.mp4"; statusEl.textContent="動画を確認できました。";
+  }catch(e){statusEl.textContent="確認エラー: "+e.message}
 }
-async function saveToDevice(item=current, customName=null, addHistory=true){
-  if(!item)return;
-  const name=cleanName(customName||filename.value||item.filename||item.name||'video.mp4');
-  const href='/api/download?url='+encodeURIComponent(item.finalUrl||item.url)+'&name='+encodeURIComponent(name);
-  setStatus('保存用ファイルを準備しています…');
+async function saveCurrent(){
+  const raw=urlEl.value.trim(); const name=(filename.value.trim()||"video.mp4").replace(/[\\/:*?"<>|]+/g,"_");
   try{
-    const r=await fetch(href);
-    if(!r.ok){let msg='保存ファイルを取得できませんでした';try{const j=await r.json();msg=j.error||msg}catch{}throw new Error(msg)}
-    const blob=await r.blob();
-    const file=new File([blob],name,{type:blob.type||item.contentType||'application/octet-stream'});
-
-    // iPhone/iPadでは共有シート経由にすると、動画プレビュー画面へ遷移せずアプリに戻れる。
-    if(navigator.share && navigator.canShare && navigator.canShare({files:[file]})){
-      await navigator.share({files:[file],title:name});
-      setStatus('共有メニューを閉じました。「ファイルに保存」または対応アプリへの保存を選べます。','ok');
-    }else{
-      const objectUrl=URL.createObjectURL(blob);
-      const a=document.createElement('a');
-      a.href=objectUrl;a.download=name;a.style.display='none';document.body.appendChild(a);a.click();a.remove();
-      setTimeout(()=>URL.revokeObjectURL(objectUrl),30000);
-      setStatus('保存を開始しました。ブラウザのダウンロード表示を確認してください。','ok');
-    }
-
-    if(addHistory){
-      const arr=histories();
-      arr.unshift({id:Date.now(),name,url:item.finalUrl||item.url,type:item.contentType||item.type,bytes:item.bytes||blob.size,at:new Date().toISOString()});
-      saveHist(arr);
-    }
-  }catch(e){
-    if(e && e.name==='AbortError'){setStatus('保存をキャンセルしました。');return;}
-    setStatus(e.message||'保存できませんでした。','error');
-  }
+    statusEl.textContent="保存準備中…"; const r=await fetch("/api/download?url="+encodeURIComponent(raw)); if(!r.ok) throw new Error("取得できませんでした");
+    const blob=await r.blob(); const file=new File([blob],name,{type:blob.type||"video/mp4"});
+    if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:name})}
+    else{const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),5000)}
+    addHistory({name,url:raw,date:new Date().toLocaleString("ja-JP")}); statusEl.textContent="保存操作を開きました。";
+  }catch(e){statusEl.textContent="保存エラー: "+e.message}
 }
-function download(){ return saveToDevice(current, cleanName(filename.value||current?.filename), true); }
-function render(){
-  const arr=histories(); $('#count').textContent=`${arr.length}件`; const root=$('#history'); $('#clearHistory').disabled=!arr.length;
-  if(!arr.length){root.innerHTML='<div class="empty">まだ履歴はありません。</div>';return}
-  root.innerHTML=arr.map(x=>`<div class="item">
-    <video class="thumb" src="${escAttr(x.url)}" muted playsinline preload="metadata"></video>
-    <div class="name">${esc(x.name||'video')}</div>
-    <div class="meta">${fmtBytes(x.bytes)} ・ ${new Date(x.at).toLocaleString('ja-JP')}</div>
-    <div class="smallrow">
-      <button class="ghost" data-play="${x.id}">再生</button>
-      <button class="primary" data-save="${x.id}">再保存</button>
-      <button class="soft" data-rename="${x.id}">名前変更</button>
-      <button class="danger" data-del="${x.id}">削除</button>
-    </div>
-    <div id="p${x.id}"></div>
-  </div>`).join('');
+function getHistory(){try{return JSON.parse(localStorage.getItem("videoBoxHistory")||"[]")}catch{return []}}
+function setHistory(v){localStorage.setItem("videoBoxHistory",JSON.stringify(v));renderHistory()}
+function addHistory(item){const h=getHistory();h.unshift(item);setHistory(h.slice(0,50))}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
+function renderHistory(){
+  const h=getHistory(); if(!h.length){historyEl.innerHTML="まだありません";return}
+  historyEl.innerHTML=h.map((x,i)=>`<div class="item"><video class="thumb" src="/api/stream?url=${encodeURIComponent(x.url)}" muted preload="metadata"></video><div><strong>${escapeHtml(x.name)}</strong><div class="muted">${escapeHtml(x.date||"")}</div><div class="actions"><button class="secondary small" onclick="reopen(${i})">再生</button><button class="secondary small" onclick="renameItem(${i})">名前変更</button><button class="danger small" onclick="removeItem(${i})">削除</button></div></div></div>`).join("")
 }
-function esc(s){return String(s).replace(/[&<>\"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
-function escAttr(s){return esc(s).replace(/'/g,'&#39;')}
-
-document.addEventListener('click',e=>{
-  const pid=e.target.dataset.play, did=e.target.dataset.del, rid=e.target.dataset.rename, sid=e.target.dataset.save;
-  if(pid){const x=histories().find(v=>String(v.id)===pid);const box=$('#p'+pid);if(x)box.innerHTML=`<video controls playsinline src="${escAttr(x.url)}"></video>`}
-  if(sid){const x=histories().find(v=>String(v.id)===sid);if(x)saveToDevice(x,x.name||'video',false)}
-  if(did){saveHist(histories().filter(v=>String(v.id)!==did))}
-  if(rid){const arr=histories();const x=arr.find(v=>String(v.id)===rid);if(!x)return;const next=prompt('新しいファイル名',x.name||'video');if(next!==null){x.name=cleanName(next);saveHist(arr)}}
-});
-
-$('#check').onclick=inspect; dl.onclick=download;
-$('#clear').onclick=()=>{url.value='';resetInspect();setStatus('URLを貼って「確認」を押してください。');url.focus()};
-$('#paste').onclick=async()=>{try{const t=await navigator.clipboard.readText();if(t){url.value=t;setStatus('クリップボードから貼り付けました。')}}catch{setStatus('貼り付けできませんでした。入力欄を長押しして貼り付けてください。','error')}};
-$('#clearHistory').onclick=()=>{if(histories().length&&confirm('保存履歴をすべて削除しますか？'))saveHist([])};
-url.addEventListener('keydown',e=>{if(e.key==='Enter')inspect()});
-
-window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredInstall=e;});
-$('#install').onclick=async()=>{
-  const guide=$('#installGuide');
-  if(deferredInstall){deferredInstall.prompt();await deferredInstall.userChoice;deferredInstall=null;return;}
-  const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
-  guide.classList.remove('hidden');
-  guide.innerHTML=isIOS?'iPhoneではSafari下部の「共有」ボタン → <b>ホーム画面に追加</b> → <b>追加</b> の順で登録できます。':'ブラウザのメニューから「ホーム画面に追加」または「アプリをインストール」を選んでください。';
-};
-
-if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(()=>{});
-migrate();render();
-</script></body></html>
+window.reopen=i=>{const x=getHistory()[i];urlEl.value=x.url;checkUrl();window.scrollTo({top:0,behavior:"smooth"})}
+window.renameItem=i=>{const h=getHistory();const n=prompt("新しい名前",h[i].name);if(n){h[i].name=n;setHistory(h)}}
+window.removeItem=i=>{const h=getHistory();h.splice(i,1);setHistory(h)}
+$("#check").onclick=checkUrl; $("#save").onclick=saveCurrent; $("#clear").onclick=()=>{urlEl.value="";resetBoxes()};
+$("#paste").onclick=async()=>{try{urlEl.value=await navigator.clipboard.readText()}catch{statusEl.textContent="貼り付けできませんでした"}};
+$("#clearHistory").onclick=()=>{if(confirm("保存履歴をすべて削除しますか？"))setHistory([])};
+if("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js"); renderHistory();
+</script>
+</body></html>

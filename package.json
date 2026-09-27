@@ -1,8 +1,11 @@
 {
   "name": "video-box",
-  "version": "0.4.0",
+  "version": "0.6.0",
   "private": true,
-  "description": "Direct media URL downloader and offline-friendly PWA",
-  "scripts": {"start": "node server.js"},
-  "engines": {"node": ">=18"}
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2"
+  }
 }

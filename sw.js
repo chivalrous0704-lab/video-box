@@ -1,4 +1,1 @@
-const CACHE='videobox-v05';
-self.addEventListener('install',e=>{self.skipWaiting();e.waitUntil(caches.open(CACHE).then(c=>c.addAll(['/','/index.html','/manifest.webmanifest'])))});
-self.addEventListener('activate',e=>e.waitUntil((async()=>{const keys=await caches.keys();await Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)));await self.clients.claim()})()));
-self.addEventListener('fetch',e=>{const u=new URL(e.request.url);if(u.pathname.startsWith('/api/'))return;e.respondWith(fetch(e.request).catch(()=>caches.match(e.request)))})
+const CACHE="video-box-v0.6";self.addEventListener("install",e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(["/","/index.html","/manifest.webmanifest"]))));self.addEventListener("fetch",e=>{if(e.request.url.includes("/api/"))return;e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request)))})
