@@ -1,9 +1,9 @@
-# 動画BOX v0.7
+# 動画BOX v0.8
 
-- TikTok投稿URLから公式oEmbed情報を取得
-- タイトル、投稿者、サムネイル表示
-- TikTok公式埋め込みプレイヤーでアプリ内再生
-- 直接動画URLは従来どおり端末保存
-- Instagram / X はURL判定 + 元投稿を開く
+- TikTok: 投稿情報 + 公式プレイヤー
+- Instagram: Meta oEmbedで投稿埋め込み
+- X: X oEmbedで投稿埋め込み
+- 直接動画URL: プレビュー・端末保存
+- 保存履歴・名前変更・削除
 
-TikTokの生動画ファイルURL自動抽出は行いません。
+SNSの生動画ファイルURL自動抽出は行いません。

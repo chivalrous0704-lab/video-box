@@ -8,17 +8,33 @@ async function getVideo(raw){const u=safeUrl(raw);if(!u)throw new Error("URLが�
 
 app.get("/api/tiktok-oembed",async(req,res)=>{
   try{
-    const raw=req.query.url;
-    const u=safeUrl(raw); if(!u) return res.status(400).json({ok:false,error:"URLが不正です"});
+    const raw=req.query.url; if(!safeUrl(raw)) return res.status(400).json({ok:false,error:"URLが不正です"});
     const r=await fetch("https://www.tiktok.com/oembed?url="+encodeURIComponent(raw),{redirect:"follow"});
     if(!r.ok) throw new Error("TikTok情報を取得できませんでした");
+    const d=await r.json(); const m=(d.html||"").match(/data-video-id=["'](\d+)["']/); const id=m?m[1]:null;
+    res.json({ok:true,title:d.title||"",author_name:d.author_name||"",thumbnail_url:d.thumbnail_url||"",player_url:id?"https://www.tiktok.com/player/v1/"+id+"?controls=1&progress_bar=1&play_button=1":raw});
+  }catch(e){res.status(400).json({ok:false,error:e.message})}
+});
+
+app.get("/api/instagram-oembed",async(req,res)=>{
+  try{
+    const raw=req.query.url; if(!safeUrl(raw)) return res.status(400).json({ok:false,error:"URLが不正です"});
+    const api="https://graph.facebook.com/v26.0/instagram_oembed?omitscript=true&url="+encodeURIComponent(raw);
+    const r=await fetch(api,{redirect:"follow"});
+    if(!r.ok) throw new Error("Instagram情報を取得できませんでした");
     const d=await r.json();
-    const m=(d.html||"").match(/data-video-id=["'](\d+)["']/);
-    const videoId=m?m[1]:null;
-    res.json({
-      ok:true,title:d.title||"",author_name:d.author_name||"",thumbnail_url:d.thumbnail_url||"",
-      resolved_url:raw, player_url: videoId ? "https://www.tiktok.com/player/v1/"+videoId+"?controls=1&progress_bar=1&play_button=1" : raw
-    });
+    res.json({ok:true,provider:"Instagram",html:d.html||""});
+  }catch(e){res.status(400).json({ok:false,error:e.message})}
+});
+
+app.get("/api/x-oembed",async(req,res)=>{
+  try{
+    const raw=req.query.url; if(!safeUrl(raw)) return res.status(400).json({ok:false,error:"URLが不正です"});
+    const api="https://publish.twitter.com/oembed?omit_script=1&dnt=1&url="+encodeURIComponent(raw);
+    const r=await fetch(api,{redirect:"follow"});
+    if(!r.ok) throw new Error("X情報を取得できませんでした");
+    const d=await r.json();
+    res.json({ok:true,provider:"X",html:d.html||""});
   }catch(e){res.status(400).json({ok:false,error:e.message})}
 });
 
@@ -38,4 +54,4 @@ app.get(["/api/stream","/api/download"],async(req,res)=>{try{
 }catch(e){res.status(400).send(e.message)}});
 
 const port=process.env.PORT||3000;
-app.listen(port,()=>console.log("video-box v0.7 on",port));
+app.listen(port,()=>console.log("video-box v0.8 on",port));

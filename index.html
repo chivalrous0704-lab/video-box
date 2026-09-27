@@ -17,12 +17,12 @@ input{flex:1;min-width:0;padding:14px;border-radius:12px;border:1px solid #33415
 button{border:0;border-radius:12px;padding:12px 14px;font-weight:700}
 .primary{background:#38bdf8;color:#082f49}.secondary{background:#1e293b;color:#e2e8f0}.danger{background:#7f1d1d;color:#fee2e2}
 video{width:100%;border-radius:14px;background:#000;margin-top:12px;max-height:430px}
-iframe{width:100%;aspect-ratio:9/16;border:0;border-radius:14px;background:#000;margin-top:12px;max-height:650px}
+.embed{width:100%;height:680px;border:0;border-radius:14px;background:#fff;margin-top:12px}
+.tiktok{aspect-ratio:9/16;height:auto;max-height:680px;background:#000}
 .badge{display:inline-block;padding:5px 9px;border-radius:999px;background:#1e293b;color:#cbd5e1;font-size:12px}
 .ok{background:#064e3b;color:#d1fae5}.warn{background:#78350f;color:#fef3c7}.err{background:#7f1d1d;color:#fee2e2}
 .top{display:flex;justify-content:space-between;align-items:center}.hidden{display:none}
-.platform{margin-top:10px}
-.note{font-size:13px;line-height:1.5;color:#cbd5e1}
+.platform{margin-top:10px}.note{font-size:13px;line-height:1.5;color:#cbd5e1}
 .meta{display:grid;grid-template-columns:100px 1fr;gap:12px;margin-top:14px;align-items:start}
 .meta img{width:100px;border-radius:12px;background:#0f172a}
 .meta strong{display:block;margin-bottom:6px}
@@ -35,12 +35,12 @@ iframe{width:100%;aspect-ratio:9/16;border:0;border-radius:14px;background:#000;
 <div class="wrap">
   <div class="top">
     <div><h1>動画BOX</h1><div class="muted">動画URLを確認・保存・整理</div></div>
-    <span class="badge">v0.7</span>
+    <span class="badge">v0.8</span>
   </div>
 
   <div class="card">
     <div class="row">
-      <input id="url" placeholder="動画URL / TikTok投稿URLを貼り付け">
+      <input id="url" placeholder="動画URL / TikTok / Instagram / X の投稿URL">
       <button class="secondary" id="paste">貼り付け</button>
       <button class="secondary" id="clear">クリア</button>
       <button class="primary" id="check">確認</button>
@@ -60,23 +60,15 @@ iframe{width:100%;aspect-ratio:9/16;border:0;border-radius:14px;background:#000;
     <div id="tiktokBox" class="hidden">
       <div class="meta">
         <img id="ttThumb" alt="">
-        <div>
-          <strong id="ttTitle"></strong>
-          <div class="muted" id="ttAuthor"></div>
-        </div>
+        <div><strong id="ttTitle"></strong><div class="muted" id="ttAuthor"></div></div>
       </div>
-      <iframe id="ttPlayer" allow="autoplay; encrypted-media" allowfullscreen></iframe>
-      <div class="actions">
-        <button class="secondary" id="openOriginal">元の投稿を開く</button>
-      </div>
-      <div class="note" style="margin-top:10px">TikTokは公式埋め込みプレイヤーで表示しています。</div>
+      <iframe id="ttPlayer" class="embed tiktok" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+      <div class="actions"><button class="secondary" id="openTikTok">元の投稿を開く</button></div>
     </div>
 
-    <div id="socialBox" class="hidden">
-      <div class="note" id="socialText"></div>
-      <div class="actions">
-        <button class="secondary" id="openSocial">元の投稿を開く</button>
-      </div>
+    <div id="embedBox" class="hidden">
+      <iframe id="socialEmbed" class="embed" sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe>
+      <div class="actions"><button class="secondary" id="openSocial">元の投稿を開く</button></div>
     </div>
   </div>
 
@@ -91,8 +83,8 @@ iframe{width:100%;aspect-ratio:9/16;border:0;border-radius:14px;background:#000;
 
 <script>
 const $=s=>document.querySelector(s);
-const urlEl=$("#url"),statusEl=$("#status"),platformEl=$("#platform"),directBox=$("#directBox"),tiktokBox=$("#tiktokBox"),socialBox=$("#socialBox");
-const preview=$("#preview"),filename=$("#filename"),historyEl=$("#history");
+const urlEl=$("#url"),statusEl=$("#status"),platformEl=$("#platform"),directBox=$("#directBox"),
+tiktokBox=$("#tiktokBox"),embedBox=$("#embedBox"),preview=$("#preview"),filename=$("#filename"),historyEl=$("#history");
 
 function classify(raw){
   let u; try{u=new URL(raw)}catch{return {type:"invalid"}}
@@ -105,35 +97,51 @@ function classify(raw){
 }
 function setBadge(t,c=""){platformEl.className="platform";platformEl.innerHTML=`<span class="badge ${c}">${t}</span>`}
 function resetBoxes(){
-  [directBox,tiktokBox,socialBox].forEach(x=>x.classList.add("hidden"));
+  [directBox,tiktokBox,embedBox].forEach(x=>x.classList.add("hidden"));
   platformEl.classList.add("hidden"); statusEl.textContent="";
-  preview.removeAttribute("src"); preview.load(); $("#ttPlayer").src="";
+  preview.removeAttribute("src"); preview.load(); $("#ttPlayer").src=""; $("#socialEmbed").srcdoc="";
+}
+function wrapEmbed(html,provider){
+  const extra = provider==="Instagram"
+    ? '<script async src="https://www.instagram.com/embed.js"></'+'script>'
+    : '<script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></'+'script>';
+  return `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>body{margin:0;padding:8px;background:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}blockquote{margin:auto!important}</style>
+  </head><body>${html}${extra}</body></html>`;
 }
 async function checkUrl(){
   resetBoxes(); const raw=urlEl.value.trim(); if(!raw){statusEl.textContent="URLを入力してね";return}
   const c=classify(raw);
   if(c.type==="invalid"){setBadge("URL形式エラー","err");statusEl.textContent="URLを確認してね";return}
+
   if(c.type==="tiktok"){
     setBadge("TikTok 投稿URL","ok"); statusEl.textContent="TikTok投稿を取得しています…";
     try{
-      const r=await fetch("/api/tiktok-oembed?url="+encodeURIComponent(raw));
-      const d=await r.json(); if(!r.ok||!d.ok) throw new Error(d.error||"取得できませんでした");
-      tiktokBox.classList.remove("hidden");
-      $("#ttTitle").textContent=d.title||"TikTok動画";
+      const r=await fetch("/api/tiktok-oembed?url="+encodeURIComponent(raw)); const d=await r.json();
+      if(!r.ok||!d.ok) throw new Error(d.error||"取得できませんでした");
+      tiktokBox.classList.remove("hidden"); $("#ttTitle").textContent=d.title||"TikTok動画";
       $("#ttAuthor").textContent=d.author_name?("@"+d.author_name.replace(/^@/,"")):"";
-      $("#ttThumb").src=d.thumbnail_url||"";
-      $("#ttPlayer").src=d.player_url;
-      $("#openOriginal").onclick=()=>window.open(d.resolved_url||raw,"_blank");
-      statusEl.textContent="TikTok投稿を表示しました。";
+      $("#ttThumb").src=d.thumbnail_url||""; $("#ttPlayer").src=d.player_url;
+      $("#openTikTok").onclick=()=>window.open(raw,"_blank"); statusEl.textContent="TikTok投稿を表示しました。";
     }catch(e){statusEl.textContent="TikTok取得エラー: "+e.message}
     return;
   }
+
   if(c.type==="instagram"||c.type==="x"){
-    setBadge(c.type==="instagram"?"Instagram 投稿URL":"X 投稿URL","warn");
-    socialBox.classList.remove("hidden");
-    $("#socialText").textContent="投稿URLとして認識しました。現時点では元投稿を開く機能まで対応しています。";
-    $("#openSocial").onclick=()=>window.open(raw,"_blank"); return;
+    const label=c.type==="instagram"?"Instagram 投稿URL":"X 投稿URL";
+    setBadge(label,"ok"); statusEl.textContent=label.replace(" URL","")+"を取得しています…";
+    try{
+      const endpoint=c.type==="instagram"?"/api/instagram-oembed":"/api/x-oembed";
+      const r=await fetch(endpoint+"?url="+encodeURIComponent(raw)); const d=await r.json();
+      if(!r.ok||!d.ok) throw new Error(d.error||"取得できませんでした");
+      embedBox.classList.remove("hidden");
+      $("#socialEmbed").srcdoc=wrapEmbed(d.html,d.provider);
+      $("#openSocial").onclick=()=>window.open(raw,"_blank");
+      statusEl.textContent=d.provider+"投稿を表示しました。";
+    }catch(e){statusEl.textContent="取得エラー: "+e.message}
+    return;
   }
+
   setBadge(c.type==="direct"?"直接動画URL":"通常URL",c.type==="direct"?"ok":"warn");
   statusEl.textContent="動画URLを確認しています…";
   try{
@@ -146,8 +154,7 @@ async function checkUrl(){
 async function saveCurrent(){
   const raw=urlEl.value.trim(); const name=(filename.value.trim()||"video.mp4").replace(/[\\/:*?"<>|]+/g,"_");
   try{
-    statusEl.textContent="保存準備中…";
-    const r=await fetch("/api/download?url="+encodeURIComponent(raw)); if(!r.ok) throw new Error("取得できませんでした");
+    statusEl.textContent="保存準備中…"; const r=await fetch("/api/download?url="+encodeURIComponent(raw)); if(!r.ok) throw new Error("取得できませんでした");
     const blob=await r.blob(); const file=new File([blob],name,{type:blob.type||"video/mp4"});
     if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:name})}
     else{const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),5000)}
