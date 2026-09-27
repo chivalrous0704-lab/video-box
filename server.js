@@ -336,35 +336,29 @@ app.get("/api/media/:id", (req, res) => {
     const item = getMedia(req.params.id);
     if (!item) return res.status(410).send("リンクの有効期限が切れました。もう一度『確認』してください。");
 
-    const stat = fs.statSync(item.filePath);
-    const total = stat.size;
-    res.setHeader("Accept-Ranges", "bytes");
-    res.setHeader("Cache-Control", "no-store");
-    res.setHeader("X-Content-Type-Options", "nosniff");
-    res.setHeader("Content-Type", item.contentType || "video/mp4");
+    const headers = {
+      "Content-Type": item.contentType || "video/mp4",
+      "Cache-Control": "no-store",
+      "X-Content-Type-Options": "nosniff"
+    };
+
     if (req.query.download === "1") {
-      res.setHeader("Content-Disposition", `attachment; filename*=UTF-8''${encodeURIComponent(cleanFilename(item.title, item.ext))}`);
+      headers["Content-Disposition"] = `attachment; filename*=UTF-8''${encodeURIComponent(cleanFilename(item.title, item.ext))}`;
+    } else {
+      headers["Content-Disposition"] = "inline";
     }
 
-    const range = req.headers.range;
-    if (range) {
-      const m = /^bytes=(\d*)-(\d*)$/.exec(range);
-      if (!m) return res.status(416).end();
-      let start = m[1] ? Number(m[1]) : 0;
-      let end = m[2] ? Number(m[2]) : total - 1;
-      if (!Number.isFinite(start) || !Number.isFinite(end) || start < 0 || end < start || start >= total) {
-        res.setHeader("Content-Range", `bytes */${total}`);
-        return res.status(416).end();
+    // Express の sendFile に Range / HEAD 処理を任せる。
+    // Safari は細かい byte-range 要求を出すため、自前処理よりこちらの方が安定する。
+    return res.sendFile(item.filePath, {
+      acceptRanges: true,
+      cacheControl: false,
+      headers
+    }, err => {
+      if (err && !res.headersSent) {
+        res.status(err.statusCode || 500).send(err.message || "取得できませんでした");
       }
-      end = Math.min(end, total - 1);
-      res.status(206);
-      res.setHeader("Content-Range", `bytes ${start}-${end}/${total}`);
-      res.setHeader("Content-Length", end - start + 1);
-      return fs.createReadStream(item.filePath, { start, end }).pipe(res);
-    }
-
-    res.setHeader("Content-Length", total);
-    fs.createReadStream(item.filePath).pipe(res);
+    });
   } catch (e) {
     if (!res.headersSent) res.status(500).send(e.message || "取得できませんでした");
     else res.end();
@@ -417,4 +411,4 @@ app.get(["/api/stream", "/api/download"], async (req, res) => {
   } catch (e) { res.status(400).send(e.message); }
 });
 
-app.listen(process.env.PORT || 3000, () => console.log("video-box v0.17"));
+app.listen(process.env.PORT || 3000, () => console.log("video-box v0.18"));

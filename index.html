@@ -19,7 +19,7 @@ button{border:0;border-radius:12px;padding:12px 14px;font-weight:700}.primary{ba
 </head>
 <body>
 <div class="wrap">
-<div class="top"><div><h1>動画BOX</h1><div class="muted">SNS動画を確認・保存・整理</div></div><span class="badge">v0.17</span></div>
+<div class="top"><div><h1>動画BOX</h1><div class="muted">SNS動画を確認・保存・整理</div></div><span class="badge">v0.18</span></div>
 
 <div class="card">
 <div class="row">
@@ -97,7 +97,7 @@ async function checkUrl(){
       currentSocial={...d,sourceUrl:raw}; socialBox.classList.remove("hidden");
       $("#socialTitle").textContent=d.title||p+"動画"; $("#socialAuthor").textContent=d.author||""; socialFilename.value=d.filename||"video.mp4";
       if(d.thumbnail) $("#socialThumb").src=d.thumbnail; else $("#socialThumb").style.display="none";
-      socialPreview.src=d.mediaUrl+"?v="+Date.now(); $("#openSocial").onclick=()=>window.open(d.webpage_url||raw,"_blank");
+      socialPreview.pause(); socialPreview.removeAttribute("src"); socialPreview.load(); socialPreview.src=d.mediaUrl+"?v="+Date.now(); socialPreview.load(); $("#openSocial").onclick=()=>window.open(d.webpage_url||raw,"_blank");
       statusEl.textContent="動画を取得できました。プレビューまたは『端末に保存』を使えます。"+(d.selectedFormat?"（変換："+d.selectedFormat+"）":"");
     }catch(e){statusEl.textContent="取得エラー: "+e.message}
     return;
