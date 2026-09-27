@@ -1,14 +1,21 @@
-# 動画BOX v0.3（iPhone簡単版）
+# 動画BOX v0.4（iPhone簡単版）
 
-6ファイルをGitHubリポジトリの一番上（ルート）に置くだけで動く構成です。
+6ファイルをすべてGitHubリポジトリ直下に置く構成です。
 
-- index.html
-- server.js
-- package.json
-- manifest.webmanifest
-- sw.js
-- README.md
+## v0.4の追加点
+- 保存前にファイル名を変更
+- 保存履歴から名前変更
+- 履歴を1件ずつ削除 / 全削除
+- 履歴に動画サムネイル表示
+- クリップボード貼り付けボタン
+- URLクリアボタン
+- ホーム画面追加の案内
+- v0.4表示・キャッシュ更新
 
-Node.js対応ホスティングで `npm start`（または `node server.js`）を実行してください。
+## Render設定
+Build Command: `npm install`
+Start Command: `node server.js`
 
-※ 対応対象は、利用者が保存する権利を持つ直接の動画・音声ファイルURLです。SNS投稿ページからの動画抽出機能は含みません。
+## 注意
+自分が権利を持つ動画、または保存が許可された動画で利用してください。
+Instagram / TikTok / X / YouTube等の投稿ページURLから動画を抽出する機能はありません。

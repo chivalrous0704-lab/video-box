@@ -8,7 +8,7 @@ const { URL } = require('url');
 
 const PORT = process.env.PORT || 3000;
 const PUBLIC_DIR = __dirname;
-const MAX_BYTES = 500 * 1024 * 1024; // 500MB
+const MAX_BYTES = 500 * 1024 * 1024;
 
 function isPrivateIp(ip) {
   if (!net.isIP(ip)) return true;
@@ -40,7 +40,7 @@ function requestOnce(u, method = 'GET', headers = {}) {
     const req = lib.request(u, {
       method,
       headers: {
-        'User-Agent': 'VideoBox/0.2',
+        'User-Agent': 'VideoBox/0.4',
         'Accept': 'video/*,audio/*,application/octet-stream;q=0.8,*/*;q=0.2',
         ...headers,
       },
@@ -81,6 +81,17 @@ function safeName(url, contentType = '') {
     name += map[(contentType || '').split(';')[0].toLowerCase()] || '.mp4';
   }
   return name;
+}
+
+function sanitizeRequestedName(name, fallback, contentType='') {
+  if (!name) return fallback;
+  let cleaned = String(name).trim().replace(/[\\/:*?"<>|\r\n]/g, '_').slice(0, 120);
+  if (!cleaned) return fallback;
+  if (!path.extname(cleaned)) {
+    const ext = path.extname(fallback) || ({'video/mp4':'.mp4','video/webm':'.webm','audio/mpeg':'.mp3','audio/mp4':'.m4a'}[(contentType||'').split(';')[0].toLowerCase()] || '');
+    cleaned += ext;
+  }
+  return cleaned;
 }
 
 function sendJson(res, status, body) {
@@ -135,7 +146,8 @@ const server = http.createServer(async (req, res) => {
         rr.resume();
         return sendJson(res, 415, {error:'ダウンロード可能な動画・音声ファイルではありません'});
       }
-      const filename = safeName(finalUrl, ct).replace(/"/g,'');
+      const fallback = safeName(finalUrl, ct);
+      const filename = sanitizeRequestedName(parsed.searchParams.get('name'), fallback, ct).replace(/"/g,'');
       res.writeHead(200, {
         'Content-Type': ct,
         ...(len ? {'Content-Length': len} : {}),
@@ -159,4 +171,4 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
-server.listen(PORT, () => console.log(`Video BOX v0.2: http://localhost:${PORT}`));
+server.listen(PORT, () => console.log(`Video BOX v0.4: http://localhost:${PORT}`));

@@ -3,7 +3,7 @@
   "short_name":"動画BOX",
   "start_url":"/",
   "display":"standalone",
-  "background_color":"#0d0d0f",
-  "theme_color":"#111111",
-  "description":"直接動画URLを確認・保存するシンプルなPWA"
+  "background_color":"#0b0b0d",
+  "theme_color":"#0b0b0d",
+  "description":"直接動画URLを確認・保存し、履歴管理できるシンプルなPWA"
 }
