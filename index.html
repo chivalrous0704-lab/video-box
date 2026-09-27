@@ -19,7 +19,7 @@ button{border:0;border-radius:12px;padding:12px 14px;font-weight:700}.primary{ba
 </head>
 <body>
 <div class="wrap">
-<div class="top"><div><h1>動画BOX</h1><div class="muted">SNS動画を確認・保存・整理</div></div><span class="badge">v0.15</span></div>
+<div class="top"><div><h1>動画BOX</h1><div class="muted">SNS動画を確認・保存・整理</div></div><span class="badge">v0.16</span></div>
 
 <div class="card">
 <div class="row">
@@ -82,7 +82,17 @@ async function checkUrl(){
   if(["tiktok","instagram","x"].includes(c.type)){
     const p=platformName(c.type); setBadge(p+" 投稿URL","ok"); statusEl.textContent=p+"の動画を取得しています…（少し時間がかかる場合があります）";
     try{
-      const r=await fetch("/api/social-info?url="+encodeURIComponent(raw)); const d=await r.json();
+      const controller=new AbortController();
+    const timeoutId=setTimeout(()=>controller.abort(),45000);
+    let r;
+    try{
+      r=await fetch("/api/social-info?url="+encodeURIComponent(raw),{signal:controller.signal,cache:"no-store"});
+    }catch(e){
+      if(e && e.name==="AbortError") throw new Error("取得に45秒以上かかったため中止しました。もう一度お試しください。");
+      throw e;
+    }finally{
+      clearTimeout(timeoutId);
+    } const d=await r.json();
       if(!r.ok||!d.ok) throw new Error(d.error||"取得できませんでした");
       currentSocial={...d,sourceUrl:raw}; socialBox.classList.remove("hidden");
       $("#socialTitle").textContent=d.title||p+"動画"; $("#socialAuthor").textContent=d.author||""; socialFilename.value=d.filename||"video.mp4";

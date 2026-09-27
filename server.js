@@ -113,33 +113,30 @@ function makeIphoneCompatible(inputPath, id) {
     const outputPath = path.join(MEDIA_DIR, `${id}.iphone.mp4`);
     try { fs.rmSync(outputPath, { force: true }); } catch {}
 
+    // 再エンコードはせず、MP4コンテナだけ整える。
+    // Instagram動画は多くがH.264/AACなので、これなら数秒で終わりやすい。
     const args = [
       "-y",
       "-i", inputPath,
       "-map", "0:v:0",
       "-map", "0:a:0?",
-      "-c:v", "libx264",
-      "-preset", "veryfast",
-      "-crf", "23",
-      "-pix_fmt", "yuv420p",
-      "-profile:v", "main",
-      "-level", "4.0",
-      "-c:a", "aac",
-      "-b:a", "128k",
+      "-c", "copy",
       "-movflags", "+faststart",
       outputPath
     ];
 
     const proc = spawn(ffmpegPath, args, { stdio: ["ignore", "ignore", "pipe"] });
     let err = "";
+    let timedOut = false;
 
     const timer = setTimeout(() => {
+      timedOut = true;
       try { proc.kill("SIGKILL"); } catch {}
-    }, 5 * 60 * 1000);
+    }, 30000);
 
     proc.stderr.on("data", d => {
       err += d.toString();
-      if (err.length > 12000) err = err.slice(-12000);
+      if (err.length > 8000) err = err.slice(-8000);
     });
 
     proc.on("error", e => {
@@ -149,9 +146,14 @@ function makeIphoneCompatible(inputPath, id) {
 
     proc.on("close", code => {
       clearTimeout(timer);
+      if (timedOut) {
+        try { fs.rmSync(outputPath, { force: true }); } catch {}
+        return reject(new Error("動画変換が30秒を超えたため中止しました"));
+      }
       if (code !== 0 || !fs.existsSync(outputPath) || fs.statSync(outputPath).size < 1024) {
         try { fs.rmSync(outputPath, { force: true }); } catch {}
-        return reject(new Error("iPhone互換変換に失敗しました: " + (err.split("\n").filter(Boolean).slice(-2).join(" / ") || `ffmpeg code ${code}`)));
+        return reject(new Error("MP4整形に失敗しました: " + (err.split("
+").filter(Boolean).slice(-2).join(" / ") || `ffmpeg code ${code}`)));
       }
       resolve(outputPath);
     });
@@ -284,21 +286,30 @@ app.get("/api/social-info", async (req, res) => {
     // yt-dlp自身に動画を一度サーバーへ保存させ、そこから端末へ配信する。
     const downloadedPath = await downloadSocial(raw, id, d);
 
-    // v0.15: 保存できてもiPhoneで再生できないInstagram動画対策。
-    // 一度H.264 + AAC / yuv420p / faststartのMP4に変換してから配信する。
-    let filePath;
+    // v0.16: 重い再エンコードを廃止。
+    // MP4の構造だけ整える（faststart）。30秒で終わらなければ元動画へフォールバック。
+    let filePath = downloadedPath;
+    let normalized = false;
     try {
-      filePath = await makeIphoneCompatible(downloadedPath, id);
-      if (downloadedPath !== filePath) {
-        try { fs.rmSync(downloadedPath, { force: true }); } catch {}
+      const fixedPath = await makeIphoneCompatible(downloadedPath, id);
+      if (fixedPath && fs.existsSync(fixedPath)) {
+        filePath = fixedPath;
+        normalized = true;
+        if (downloadedPath !== filePath) {
+          try { fs.rmSync(downloadedPath, { force: true }); } catch {}
+        }
       }
     } catch (convertError) {
-      throw new Error(convertError?.message || "iPhone互換形式への変換に失敗しました");
+      console.warn("MP4整形をスキップ:", convertError?.message || convertError);
     }
 
-    const ext = "mp4";
+    const ext = path.extname(filePath).replace(/^\./, "") || "mp4";
     const stat = fs.statSync(filePath);
-    storeMedia({ id, filePath, ext, title, webpageUrl, size: stat.size, contentType: "video/mp4" });
+    storeMedia({
+      id, filePath, ext, title, webpageUrl, size: stat.size,
+      contentType: ext === "mp4" ? "video/mp4" : mimeFromExt(ext),
+      normalized
+    });
 
     res.json({
       ok: true,
@@ -309,7 +320,7 @@ app.get("/api/social-info", async (req, res) => {
       filename: cleanFilename(title, ext),
       ext,
       size: stat.size,
-      selectedFormat: "H.264 + AAC (iPhone互換変換済み)",
+      selectedFormat: "MP4 faststart整形",
       mediaId: id,
       mediaUrl: `/api/media/${id}`,
       downloadUrl: `/api/media/${id}?download=1`
@@ -407,4 +418,4 @@ app.get(["/api/stream", "/api/download"], async (req, res) => {
   } catch (e) { res.status(400).send(e.message); }
 });
 
-app.listen(process.env.PORT || 3000, () => console.log("video-box v0.15"));
+app.listen(process.env.PORT || 3000, () => console.log("video-box v0.16"));
