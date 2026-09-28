@@ -15,16 +15,11 @@ h1{margin:0 0 4px;font-size:28px}.muted{color:#94a3b8;font-size:14px}.top{displa
 button{border:0;border-radius:12px;padding:12px 14px;font-weight:700}.primary{background:#38bdf8;color:#082f49}.secondary{background:#1e293b;color:#e2e8f0}.danger{background:#7f1d1d;color:#fee2e2}
 .badge{display:inline-block;padding:5px 9px;border-radius:999px;background:#1e293b;color:#cbd5e1;font-size:12px}.ok{background:#064e3b;color:#d1fae5}.warn{background:#78350f;color:#fef3c7}.err{background:#7f1d1d;color:#fee2e2}
 .hidden{display:none}.platform{margin-top:10px}video{width:100%;border-radius:14px;background:#000;margin-top:12px;max-height:560px}.meta{display:grid;grid-template-columns:100px 1fr;gap:12px;margin-top:14px}.meta img{width:100px;height:100px;object-fit:cover;border-radius:12px;background:#0f172a}.actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}.item{border-top:1px solid #243244;padding:12px 0}.small{padding:8px 10px;font-size:13px}.note{margin-top:10px;padding:10px 12px;border-radius:12px;background:#0f172a;color:#cbd5e1;font-size:13px;line-height:1.6}
-.recipe-btn{background:#f59e0b;color:#451a03}
-.recipe-panel{margin-top:12px;padding:14px;border:1px solid #334155;border-radius:14px;background:#0b1220}
-.recipe-panel h3{margin:0 0 8px;font-size:17px}
-.recipe-panel textarea{width:100%;box-sizing:border-box;min-height:340px;resize:vertical;padding:12px;border-radius:12px;border:1px solid #334155;background:#020617;color:#e2e8f0;font:12px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace}
-.recipe-help{font-size:12px;color:#94a3b8;line-height:1.6;margin-top:8px}
 </style>
 </head>
 <body>
 <div class="wrap">
-<div class="top"><div><h1>動画BOX</h1><div class="muted">SNS動画を確認・保存・整理</div></div><span class="badge">v0.23</span></div>
+<div class="top"><div><h1>動画BOX</h1><div class="muted">SNS動画を確認・保存・整理</div></div><span class="badge">v0.24</span></div>
 
 <div class="card">
 <div class="row">
@@ -48,16 +43,6 @@ button{border:0;border-radius:12px;padding:12px 14px;font-weight:700}.primary{ba
 <div class="actions">
 <button class="primary" id="saveSocial">端末に保存</button>
 <button class="secondary" id="openSocial">元の投稿を開く</button>
-<button class="recipe-btn" id="makeRecipe">うちレシピ用に変換</button>
-</div>
-<div id="recipePanel" class="recipe-panel hidden">
-<h3>うちレシピ用JSON</h3>
-<textarea id="recipeJson" spellcheck="false"></textarea>
-<div class="actions">
-<button class="primary" id="copyRecipe">JSONをコピー</button>
-<button class="secondary" id="closeRecipe">閉じる</button>
-</div>
-<div class="recipe-help">SNS投稿本文から材料・手順を自動整理します。投稿文に書かれていない分量や工程は推測で補わず、空欄またはメモに残します。コピー後、そのまま「うちレシピ」の貼り付け登録へ使えます。</div>
 </div>
 <div class="note">公開投稿で取得できる動画を対象にしています。ログイン限定・非公開・年齢制限などの投稿は取得できない場合があります。</div>
 </div>
@@ -71,7 +56,7 @@ button{border:0;border-radius:12px;padding:12px 14px;font-weight:700}.primary{ba
 
 <script>
 const $=s=>document.querySelector(s);
-const urlEl=$("#url"),statusEl=$("#status"),platformEl=$("#platform"),directBox=$("#directBox"),socialBox=$("#socialBox"),preview=$("#preview"),filename=$("#filename"),historyEl=$("#history"),socialPreview=$("#socialPreview"),socialFilename=$("#socialFilename"),recipePanel=$("#recipePanel"),recipeJson=$("#recipeJson");
+const urlEl=$("#url"),statusEl=$("#status"),platformEl=$("#platform"),directBox=$("#directBox"),socialBox=$("#socialBox"),preview=$("#preview"),filename=$("#filename"),historyEl=$("#history"),socialPreview=$("#socialPreview"),socialFilename=$("#socialFilename");
 let currentSocial=null;
 
 function classify(raw){
@@ -87,7 +72,6 @@ function setBadge(t,c=""){platformEl.className="platform";platformEl.innerHTML=`
 function resetBoxes(){
   [directBox,socialBox].forEach(x=>x.classList.add("hidden")); platformEl.classList.add("hidden"); statusEl.textContent=""; currentSocial=null;
   preview.removeAttribute("src"); preview.load(); socialPreview.removeAttribute("src"); socialPreview.load(); $("#socialThumb").removeAttribute("src");
-  recipePanel.classList.add("hidden"); recipeJson.value="";
 }
 function platformName(t){return t==="tiktok"?"TikTok":t==="instagram"?"Instagram":t==="x"?"X":"SNS"}
 
@@ -129,171 +113,6 @@ async function checkUrl(){
 }
 
 
-function cleanLines(text){
-  return String(text||"")
-    .replace(/\r/g,"")
-    .split("\n")
-    .map(s=>s.trim())
-    .filter(Boolean);
-}
-
-function stripDecor(s){
-  return String(s||"")
-    .replace(/^[\s■●◆◇★☆▶▷▼▽・\-–—※＊*#【】\[\]①-⑳0-9０-９.．、:：()（）]+/,"")
-    .trim();
-}
-
-function looksLikeIngredient(line){
-  return /(?:\d+(?:\.\d+)?\s*(?:g|kg|ml|cc|L|個|本|枚|片|束|袋|缶|パック|玉|丁|杯|大さじ|小さじ|適量|少々)|適量|少々|ひとつまみ)/i.test(line);
-}
-
-function isHeading(line, words){
-  const x=line.replace(/\s/g,"").toLowerCase();
-  return words.some(w=>x.includes(w));
-}
-
-function inferCategory(text){
-  const t=String(text||"").toLowerCase();
-  if(/スープ|汁|味噌汁|みそ汁|ポタージュ/.test(t)) return "汁物";
-  if(/パスタ|うどん|そば|ラーメン|麺|丼|チャーハン|炒飯|ご飯|ごはん|おにぎり|炊き込み/.test(t)) return "ご飯・麺";
-  if(/ケーキ|クッキー|プリン|アイス|デザート|スイーツ|パンケーキ|ゼリー/.test(t)) return "デザート";
-  if(/サラダ|和え|漬け|副菜|きんぴら|ナムル|おひたし/.test(t)) return "副菜";
-  if(/肉|豚|鶏|牛|魚|鮭|サーモン|ハンバーグ|唐揚げ|から揚げ|炒め|焼き|煮|カレー/.test(t)) return "主菜";
-  return "その他";
-}
-
-function deriveRecipeTitle(d, text){
-  const lines=cleanLines(text);
-  let t=String(d.title||"").trim();
-
-  // まず【料理名】のような明示タイトルを最優先
-  const bracketMatch=String(text||"").match(/【\s*([^】]{2,40})\s*】/);
-  if(bracketMatch && !isHeading(bracketMatch[1],["材料","作り方","レシピ","ingredients","recipe"])){
-    t=bracketMatch[1].trim();
-  } else if(/^video by /i.test(t) || t.length>80){
-    // 分量や材料が連続している行は料理名として採用しない
-    const candidate=lines.find(x => {
-      const s=x.trim();
-      const amountCount=(s.match(/\d+(?:\.\d+)?\s*(?:g|kg|ml|cc|L|個|本|枚|片|束|袋|缶|パック|玉|丁|杯|大さじ|小さじ)/gi)||[]).length;
-      const bulletCount=(s.match(/[・●■◆]/g)||[]).length;
-      return s.length>=2 && s.length<=45 &&
-        !/^@/.test(s) &&
-        !/^#/.test(s) &&
-        !looksLikeIngredient(s) &&
-        amountCount===0 &&
-        bulletCount<=1 &&
-        !isHeading(s,["材料","作り方","レシピ","ingredients","recipe"]);
-    });
-    if(candidate) t=candidate;
-  }
-
-  t=t.replace(/^レシピはここから[↓⇩👇↘\s]*/,"").trim();
-  t=t.replace(/^【|】$/g,"").trim();
-  t=t.replace(/^[・●■◆\-\s]+|[・●■◆\-\s]+$/g,"").trim();
-  t=t.replace(/#[^\s#]+/g,"").trim();
-
-  // 念のため、タイトル末尾に材料列が混ざった場合は最初の区切りで止める
-  if(/[・●■◆]/.test(t) && looksLikeIngredient(t)){
-    t=t.split(/[・●■◆]/)[0].trim();
-  }
-
-  return t || "SNSレシピ";
-}
-
-function parseRecipeFromSocial(d){
-  const rawText=String(d.description||d.title||"");
-  const lines=cleanLines(rawText);
-  let section="";
-  const ingredients=[], steps=[];
-  const memoLines=[];
-  const ingredientHeads=["材料","ingredients","ingredient"];
-  const stepHeads=["作り方","つくり方","手順","工程","recipe","howto","how to","作りかた"];
-  const stopHeads=["ポイント","コツ","保存","memo","メモ","注意"];
-
-  for(const line0 of lines){
-    const line=line0.trim();
-    if(isHeading(line,ingredientHeads)){section="ingredients";continue}
-    if(isHeading(line,stepHeads)){section="steps";continue}
-    if(isHeading(line,stopHeads)){section="memo";continue}
-    if(/^#{1,}/.test(line)) continue;
-
-    if(section==="ingredients"){
-      if(line.length<=100) ingredients.push(stripDecor(line));
-      continue;
-    }
-    if(section==="steps"){
-      if(line.length<=180) steps.push(stripDecor(line));
-      continue;
-    }
-    if(section==="memo"){
-      memoLines.push(line);
-      continue;
-    }
-
-    // 見出しが無い投稿でも、分量入りの行は材料候補
-    if(looksLikeIngredient(line) && line.length<=100){
-      ingredients.push(stripDecor(line));
-    }
-  }
-
-  // 重複除去
-  const uniq=a=>[...new Set(a.map(x=>x.trim()).filter(Boolean))];
-  let ing=uniq(ingredients);
-  let st=uniq(steps);
-
-  // 「①〜」「1.〜」などの手順を拾う
-  if(!st.length){
-    st=uniq(lines.filter(x=>/^(?:[①-⑳]|[0-9０-９]+[.)．、:]|step\s*\d+)/i.test(x)).map(stripDecor));
-  }
-
-  const all=rawText+" "+String(d.title||"");
-  const servings=(all.match(/(\d+)\s*(?:人分|人前)/)||[])[0]||"";
-  const time=(all.match(/(?:調理時間|所要時間)?\s*(\d+)\s*分/)||[])[0]||"";
-
-  const tags=uniq((rawText.match(/#[^\s#]+/g)||[]).map(x=>x.replace(/^#/,""))).slice(0,8);
-  const sourceName = currentSocial ? platformName(classify(currentSocial.sourceUrl).type) : "SNS";
-
-  let memo="SNS投稿本文から自動整理。内容・分量・工程を確認してから保存してください。";
-  if(memoLines.length) memo += "\n"+uniq(memoLines).join("\n");
-  if(!ing.length || !st.length){
-    memo += "\n\n【元投稿本文】\n"+rawText;
-  }
-
-  return {
-    title: deriveRecipeTitle(d,rawText),
-    category: inferCategory(all),
-    servings: servings,
-    time: time,
-    ingredients: ing,
-    steps: st,
-    tags: tags,
-    memo: memo,
-    sourceName: sourceName,
-    sourceAuthor: d.author||"",
-    sourceUrl: d.webpage_url||d.sourceUrl||""
-  };
-}
-
-function makeRecipe(){
-  if(!currentSocial){statusEl.textContent="先に『確認』してください";return}
-  const data=parseRecipeFromSocial(currentSocial);
-  recipeJson.value=JSON.stringify(data,null,2);
-  recipePanel.classList.remove("hidden");
-  recipePanel.scrollIntoView({behavior:"smooth",block:"nearest"});
-}
-
-async function copyRecipe(){
-  if(!recipeJson.value){statusEl.textContent="先に変換してください";return}
-  try{
-    await navigator.clipboard.writeText(recipeJson.value);
-    statusEl.textContent="うちレシピ用JSONをコピーしました。";
-  }catch{
-    recipeJson.focus(); recipeJson.select();
-    document.execCommand("copy");
-    statusEl.textContent="うちレシピ用JSONをコピーしました。";
-  }
-}
-
 async function saveBlobFrom(url,name,historyUrl){
   const safeName=(name||"video.mp4").replace(/[\\/:*?"<>|]+/g,"_");
   statusEl.textContent="動画を準備しています…";
@@ -323,7 +142,7 @@ function addHistory(item){const h=getHistory();h.unshift(item);setHistory(h.slic
 function renderHistory(){const h=getHistory();historyEl.innerHTML=h.length?h.map((x,i)=>`<div class="item"><strong>${x.name}</strong><div class="muted">${x.date||""}</div><div class="actions"><button class="secondary small" onclick="reopen(${i})">もう一度開く</button><button class="danger small" onclick="removeItem(${i})">削除</button></div></div>`).join(""):"まだありません"}
 window.reopen=i=>{const x=getHistory()[i];urlEl.value=x.url;checkUrl();window.scrollTo({top:0,behavior:"smooth"})}
 window.removeItem=i=>{const h=getHistory();h.splice(i,1);setHistory(h)}
-$("#check").onclick=checkUrl; $("#saveDirect").onclick=saveDirect; $("#saveSocial").onclick=saveSocial; $("#makeRecipe").onclick=makeRecipe; $("#copyRecipe").onclick=copyRecipe; $("#closeRecipe").onclick=()=>recipePanel.classList.add("hidden"); $("#clear").onclick=()=>{urlEl.value="";resetBoxes()};
+$("#check").onclick=checkUrl; $("#saveDirect").onclick=saveDirect; $("#saveSocial").onclick=saveSocial; $("#clear").onclick=()=>{urlEl.value="";resetBoxes()};
 $("#paste").onclick=async()=>{try{urlEl.value=await navigator.clipboard.readText()}catch{statusEl.textContent="貼り付けできませんでした"}};
 $("#clearHistory").onclick=()=>{if(confirm("保存履歴をすべて削除しますか？"))setHistory([])};
 if("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js"); renderHistory();

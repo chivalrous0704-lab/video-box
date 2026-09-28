@@ -1,6 +1,6 @@
 {
   "name": "video-box",
-  "version": "0.23.0",
+  "version": "0.24.0",
   "private": true,
   "scripts": {
     "start": "node server.js"
