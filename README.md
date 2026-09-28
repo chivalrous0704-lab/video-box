@@ -1,20 +1,18 @@
-# 動画BOX v0.25
+# 動画BOX v0.26
 
-## 新機能
-YouTube URLに対応しました。
+## yt-dlp 更新版
 
-対応URL:
-- youtube.com/watch?v=...
-- youtu.be/...
-- youtube.com/shorts/...
+YouTubeの `Sign in to confirm you're not a bot` 対策として、
+Render起動時に yt-dlp を更新する処理を追加しました。
 
-処理:
-- YouTubeを自動判定
-- MP4 / H.264 を優先
-- YouTubeで映像と音声が分離されている場合は ffmpeg-static で自動結合
-- 最大1080pを優先
-- プレビュー、端末保存、元投稿を開く、保存履歴に対応
+### 変更点
+- `youtube-dl-exec` を 3.1.15 に固定
+- 起動時に yt-dlp の `nightly` 更新を優先して実行
+- nightly更新に失敗した場合は通常更新へフォールバック
+- 更新自体が失敗しても動画BOXは起動する
+- 起動ログに実際の yt-dlp バージョンを表示
 
-## 注意
-ログイン限定、非公開、年齢制限、メンバー限定、DRM付きなどは取得できない場合があります。
-保存は、ご自身が権利を持つ動画や保存が許可されている動画で利用してください。
+### 注意
+この更新でYouTube取得が改善する可能性はありますが、
+YouTube側がRenderのアクセス元をボット判定している場合は、
+最新版でもCookie認証を要求されることがあります。

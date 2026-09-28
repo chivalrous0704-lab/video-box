@@ -1,13 +1,13 @@
 {
   "name": "video-box",
-  "version": "0.25.0",
+  "version": "0.26.0",
   "private": true,
   "scripts": {
-    "start": "node server.js"
+    "start": "node update-ytdlp.js && node server.js"
   },
   "dependencies": {
     "express": "^4.21.2",
-    "youtube-dl-exec": "^3.1.15",
+    "youtube-dl-exec": "3.1.15",
     "ffmpeg-static": "^5.2.0"
   }
 }
