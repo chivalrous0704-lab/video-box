@@ -42,11 +42,19 @@ function isInstagramUrl(raw) {
   } catch { return false; }
 }
 
+function isYouTubeUrl(raw) {
+  try {
+    const h = new URL(raw).hostname.toLowerCase();
+    return h === "youtube.com" || h.endsWith(".youtube.com") || h === "youtu.be" || h.endsWith(".youtu.be");
+  } catch { return false; }
+}
+
 function commonFlags() {
   return {
     noWarnings: true,
     noCheckCertificates: true,
     noPlaylist: true,
+    ffmpegLocation: ffmpegPath,
     // iPhoneで再生しやすい H.264 + AAC のMP4を最優先
     format: "best[ext=mp4][vcodec^=avc1][acodec^=mp4a]/best[ext=mp4][vcodec^=h264][acodec^=aac]/best[ext=mp4][vcodec!=none][acodec!=none]/best[vcodec!=none][acodec!=none]/best"
   };
@@ -63,8 +71,21 @@ function tiktokFlags(ua) {
   };
 }
 
+function youtubeFlags() {
+  return {
+    ...commonFlags(),
+    // iPhoneで扱いやすいMP4/H.264 + M4A/AACを優先。
+    // 映像と音声が分離されている場合はffmpeg-staticで結合する。
+    format: "bestvideo[ext=mp4][vcodec^=avc1][height<=1080]+bestaudio[ext=m4a]/best[ext=mp4][vcodec^=avc1][height<=1080]/best[ext=mp4][height<=1080]/best",
+    mergeOutputFormat: "mp4"
+  };
+}
+
 async function extractSocial(raw) {
   const base = { ...commonFlags(), dumpSingleJson: true, skipDownload: true };
+  if (isYouTubeUrl(raw)) {
+    return youtubedl(raw, { ...youtubeFlags(), dumpSingleJson: true, skipDownload: true }, { timeout: 60000 });
+  }
   if (!isTikTokUrl(raw)) return youtubedl(raw, base, { timeout: 45000 });
 
   let lastErr;
@@ -211,6 +232,9 @@ async function downloadSocial(raw, id, metadata) {
   const preferredFormat = chooseIosFormat(metadata);
   const baseFlags = preferredFormat ? { ...commonFlags(), format: preferredFormat } : commonFlags();
 
+  if (isYouTubeUrl(raw)) {
+    return runDownload(raw, id, youtubeFlags());
+  }
   if (!isTikTokUrl(raw)) return runDownload(raw, id, baseFlags);
 
   let lastErr;
@@ -439,4 +463,4 @@ app.get(["/api/stream", "/api/download"], async (req, res) => {
   } catch (e) { res.status(400).send(e.message); }
 });
 
-app.listen(process.env.PORT || 3000, () => console.log("video-box v0.24"));
+app.listen(process.env.PORT || 3000, () => console.log("video-box v0.25"));

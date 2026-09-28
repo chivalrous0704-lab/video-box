@@ -19,11 +19,11 @@ button{border:0;border-radius:12px;padding:12px 14px;font-weight:700}.primary{ba
 </head>
 <body>
 <div class="wrap">
-<div class="top"><div><h1>動画BOX</h1><div class="muted">SNS動画を確認・保存・整理</div></div><span class="badge">v0.24</span></div>
+<div class="top"><div><h1>動画BOX</h1><div class="muted">SNS動画を確認・保存・整理</div></div><span class="badge">v0.25</span></div>
 
 <div class="card">
 <div class="row">
-<input id="url" placeholder="TikTok / Instagram / X / 動画URL">
+<input id="url" placeholder="YouTube / TikTok / Instagram / X / 動画URL">
 <button class="secondary" id="paste">貼り付け</button>
 <button class="secondary" id="clear">クリア</button>
 <button class="primary" id="check">確認</button>
@@ -44,7 +44,7 @@ button{border:0;border-radius:12px;padding:12px 14px;font-weight:700}.primary{ba
 <button class="primary" id="saveSocial">端末に保存</button>
 <button class="secondary" id="openSocial">元の投稿を開く</button>
 </div>
-<div class="note">公開投稿で取得できる動画を対象にしています。ログイン限定・非公開・年齢制限などの投稿は取得できない場合があります。</div>
+<div class="note">公開投稿で取得できる動画を対象にしています。YouTubeを含め、ログイン限定・非公開・年齢制限・メンバー限定・DRM付きなどは取得できない場合があります。保存はご自身が権利を持つ動画や、保存が許可されている動画で利用してください。</div>
 </div>
 </div>
 
@@ -62,6 +62,7 @@ let currentSocial=null;
 function classify(raw){
   let u; try{u=new URL(raw)}catch{return {type:"invalid"}}
   const h=u.hostname.replace(/^www\./,"").toLowerCase();
+  if(h==="youtube.com"||h.endsWith(".youtube.com")||h==="youtu.be"||h.endsWith(".youtu.be")) return {type:"youtube"};
   if(h==="tiktok.com"||h.endsWith(".tiktok.com")||h==="vt.tiktok.com"||h==="vm.tiktok.com") return {type:"tiktok"};
   if(h==="instagram.com"||h.endsWith(".instagram.com")) return {type:"instagram"};
   if(h==="x.com"||h.endsWith(".x.com")||h==="twitter.com"||h.endsWith(".twitter.com")) return {type:"x"};
@@ -73,14 +74,15 @@ function resetBoxes(){
   [directBox,socialBox].forEach(x=>x.classList.add("hidden")); platformEl.classList.add("hidden"); statusEl.textContent=""; currentSocial=null;
   preview.removeAttribute("src"); preview.load(); socialPreview.removeAttribute("src"); socialPreview.load(); $("#socialThumb").removeAttribute("src");
 }
-function platformName(t){return t==="tiktok"?"TikTok":t==="instagram"?"Instagram":t==="x"?"X":"SNS"}
+function platformName(t){return t==="youtube"?"YouTube":t==="tiktok"?"TikTok":t==="instagram"?"Instagram":t==="x"?"X":"SNS"}
 
 async function checkUrl(){
   resetBoxes(); const raw=urlEl.value.trim(); if(!raw){statusEl.textContent="URLを入力してね";return}
   const c=classify(raw); if(c.type==="invalid"){setBadge("URL形式エラー","err");statusEl.textContent="URLを確認してね";return}
 
-  if(["tiktok","instagram","x"].includes(c.type)){
-    const p=platformName(c.type); setBadge(p+" 投稿URL","ok"); statusEl.textContent=p+"の動画を取得しています…（少し時間がかかる場合があります）";
+  if(["youtube","tiktok","instagram","x"].includes(c.type)){
+    const p=platformName(c.type); setBadge(p+" 投稿URL","ok");
+    statusEl.textContent=p+"の動画を取得しています…"+(c.type==="youtube"?"（YouTubeは音声結合で少し時間がかかる場合があります）":"（少し時間がかかる場合があります）");
     try{
       const controller=new AbortController();
     const timeoutId=setTimeout(()=>controller.abort(),75000);
