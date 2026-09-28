@@ -441,4 +441,4 @@ app.get(["/api/stream", "/api/download"], async (req, res) => {
   } catch (e) { res.status(400).send(e.message); }
 });
 
-app.listen(process.env.PORT || 3000, () => console.log("video-box v0.22"));
+app.listen(process.env.PORT || 3000, () => console.log("video-box v0.23"));

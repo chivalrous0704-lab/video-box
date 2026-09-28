@@ -24,7 +24,7 @@ button{border:0;border-radius:12px;padding:12px 14px;font-weight:700}.primary{ba
 </head>
 <body>
 <div class="wrap">
-<div class="top"><div><h1>動画BOX</h1><div class="muted">SNS動画を確認・保存・整理</div></div><span class="badge">v0.22</span></div>
+<div class="top"><div><h1>動画BOX</h1><div class="muted">SNS動画を確認・保存・整理</div></div><span class="badge">v0.23</span></div>
 
 <div class="card">
 <div class="row">
@@ -166,18 +166,37 @@ function deriveRecipeTitle(d, text){
   const lines=cleanLines(text);
   let t=String(d.title||"").trim();
 
-  // yt-dlpが返す汎用タイトルは避ける
-  if(/^video by /i.test(t) || t.length>80){
-    const candidate=lines.find(x =>
-      x.length>=2 && x.length<=45 &&
-      !/^@/.test(x) &&
-      !/^#/.test(x) &&
-      !isHeading(x,["材料","作り方","レシピ","ingredients","recipe"])
-    );
+  // まず【料理名】のような明示タイトルを最優先
+  const bracketMatch=String(text||"").match(/【\s*([^】]{2,40})\s*】/);
+  if(bracketMatch && !isHeading(bracketMatch[1],["材料","作り方","レシピ","ingredients","recipe"])){
+    t=bracketMatch[1].trim();
+  } else if(/^video by /i.test(t) || t.length>80){
+    // 分量や材料が連続している行は料理名として採用しない
+    const candidate=lines.find(x => {
+      const s=x.trim();
+      const amountCount=(s.match(/\d+(?:\.\d+)?\s*(?:g|kg|ml|cc|L|個|本|枚|片|束|袋|缶|パック|玉|丁|杯|大さじ|小さじ)/gi)||[]).length;
+      const bulletCount=(s.match(/[・●■◆]/g)||[]).length;
+      return s.length>=2 && s.length<=45 &&
+        !/^@/.test(s) &&
+        !/^#/.test(s) &&
+        !looksLikeIngredient(s) &&
+        amountCount===0 &&
+        bulletCount<=1 &&
+        !isHeading(s,["材料","作り方","レシピ","ingredients","recipe"]);
+    });
     if(candidate) t=candidate;
   }
+
   t=t.replace(/^レシピはここから[↓⇩👇↘\s]*/,"").trim();
+  t=t.replace(/^【|】$/g,"").trim();
+  t=t.replace(/^[・●■◆\-\s]+|[・●■◆\-\s]+$/g,"").trim();
   t=t.replace(/#[^\s#]+/g,"").trim();
+
+  // 念のため、タイトル末尾に材料列が混ざった場合は最初の区切りで止める
+  if(/[・●■◆]/.test(t) && looksLikeIngredient(t)){
+    t=t.split(/[・●■◆]/)[0].trim();
+  }
+
   return t || "SNSレシピ";
 }
 
